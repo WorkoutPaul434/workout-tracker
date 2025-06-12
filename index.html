@@ -89,16 +89,61 @@
             const [isPeaking, setIsPeaking] = useState(false);
             const [peakingWeek, setPeakingWeek] = useState(1);
             
-            // One Rep Max state
-            const [oneRepMaxes, setOneRepMaxes] = useState({
-                bench: 102,
-                deadlift: 143,
-                squat: 125
+            // Load data from storage or use defaults
+            const [oneRepMaxes, setOneRepMaxes] = useState(() => {
+                const saved = localStorage.getItem('workoutTracker_oneRepMaxes');
+                return saved ? JSON.parse(saved) : {
+                    bench: 102,
+                    deadlift: 143,
+                    squat: 125
+                };
             });
 
-            // Progress tracking state
-            const [workoutHistory, setWorkoutHistory] = useState([]);
-            const [currentWorkout, setCurrentWorkout] = useState({});
+            const [workoutHistory, setWorkoutHistory] = useState(() => {
+                const saved = localStorage.getItem('workoutTracker_history');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            const [currentWorkout, setCurrentWorkout] = useState(() => {
+                const saved = localStorage.getItem('workoutTracker_currentWorkout');
+                return saved ? JSON.parse(saved) : {};
+            });
+
+            const [setData, setSetData] = useState(() => {
+                const saved = localStorage.getItem('workoutTracker_setData');
+                return saved ? JSON.parse(saved) : {};
+            });
+
+            // Save data to localStorage whenever state changes
+            useEffect(() => {
+                localStorage.setItem('workoutTracker_oneRepMaxes', JSON.stringify(oneRepMaxes));
+            }, [oneRepMaxes]);
+
+            useEffect(() => {
+                localStorage.setItem('workoutTracker_history', JSON.stringify(workoutHistory));
+            }, [workoutHistory]);
+
+            useEffect(() => {
+                localStorage.setItem('workoutTracker_currentWorkout', JSON.stringify(currentWorkout));
+            }, [currentWorkout]);
+
+            useEffect(() => {
+                localStorage.setItem('workoutTracker_setData', JSON.stringify(setData));
+            }, [setData]);
+
+            useEffect(() => {
+                const saved = localStorage.getItem('workoutTracker_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    setIsPeaking(settings.isPeaking || false);
+                    setPeakingWeek(settings.peakingWeek || 1);
+                }
+            }, []);
+
+            useEffect(() => {
+                const settings = { isPeaking, peakingWeek };
+                localStorage.setItem('workoutTracker_settings', JSON.stringify(settings));
+            }, [isPeaking, peakingWeek]);
 
             // Workout structure
             const workoutPlan = {
@@ -220,18 +265,38 @@
                 const today = currentDate.toISOString().split('T')[0];
                 const workoutKey = `${today}-${selectedDay}`;
                 
-                if (currentWorkout[workoutKey]) {
-                    setWorkoutHistory(prev => [...prev, {
-                        date: today,
-                        day: selectedDay,
-                        workout: workoutPlan[selectedDay].name,
-                        exercises: currentWorkout[workoutKey]
-                    }]);
-                    
-                    setCurrentWorkout(prev => ({
-                        ...prev,
-                        [workoutKey]: undefined
-                    }));
+                if (setData[workoutKey]) {
+                    // Count completed sets
+                    const completedSets = Object.values(setData[workoutKey] || {})
+                        .reduce((total, exercise) => {
+                            return total + Object.values(exercise).filter(set => set.completed).length;
+                        }, 0);
+
+                    if (completedSets > 0) {
+                        const newWorkout = {
+                            date: today,
+                            day: selectedDay,
+                            workout: workoutPlan[selectedDay].name,
+                            exercises: setData[workoutKey],
+                            completedSets: completedSets,
+                            timestamp: new Date().toISOString()
+                        };
+
+                        setWorkoutHistory(prev => [...prev, newWorkout]);
+                        
+                        // Clear today's workout data
+                        setSetData(prev => ({
+                            ...prev,
+                            [workoutKey]: undefined
+                        }));
+
+                        // Show success message
+                        alert(`✅ Workout completed! ${completedSets} sets recorded.`);
+                    } else {
+                        alert('⚠️ Please complete at least one set before saving the workout.');
+                    }
+                } else {
+                    alert('⚠️ No workout data to save.');
                 }
             };
 
@@ -432,24 +497,49 @@
                                                         
                                                         {/* Set tracking inputs */}
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                            {[1, 2, 3, 4].map(setNum => (
-                                                                <div key={setNum} className="flex space-x-2">
-                                                                    <input
-                                                                        type="number"
-                                                                        placeholder="Weight (kg)"
-                                                                        step="0.25"
-                                                                        className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
-                                                                    />
-                                                                    <input
-                                                                        type="number"
-                                                                        placeholder="Reps"
-                                                                        className="w-16 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
-                                                                    />
-                                                                    <button className="px-3 py-2 gradient-bg hover:scale-105 rounded-lg text-sm text-white transition-all">
-                                                                        ✓
-                                                                    </button>
-                                                                </div>
-                                                            ))}
+                                                            {[1, 2, 3, 4].map(setNum => {
+                                                                const isCompleted = isSetCompleted(exercise.name, setNum);
+                                                                return (
+                                                                    <div key={setNum} className={`flex space-x-2 p-2 rounded-lg transition-all ${
+                                                                        isCompleted ? 'bg-green-900/30 border border-green-600/50' : 'bg-gray-900/30'
+                                                                    }`}>
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="Weight (kg)"
+                                                                            step="0.25"
+                                                                            value={getSetValue(exercise.name, setNum, 'weight')}
+                                                                            onChange={(e) => updateSetData(exercise.name, setNum, 'weight', e.target.value)}
+                                                                            disabled={isCompleted}
+                                                                            className={`flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500 ${
+                                                                                isCompleted ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-900'
+                                                                            }`}
+                                                                        />
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="Reps"
+                                                                            value={getSetValue(exercise.name, setNum, 'reps')}
+                                                                            onChange={(e) => updateSetData(exercise.name, setNum, 'reps', e.target.value)}
+                                                                            disabled={isCompleted}
+                                                                            className={`w-16 px-3 py-2 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500 ${
+                                                                                isCompleted ? 'bg-gray-700 cursor-not-allowed' : 'bg-gray-900'
+                                                                            }`}
+                                                                        />
+                                                                        <button 
+                                                                            onClick={() => completeSet(exercise.name, setNum)}
+                                                                            disabled={isCompleted || !getSetValue(exercise.name, setNum, 'weight') || !getSetValue(exercise.name, setNum, 'reps')}
+                                                                            className={`px-3 py-2 rounded-lg text-sm text-white transition-all ${
+                                                                                isCompleted 
+                                                                                    ? 'bg-green-600 cursor-not-allowed' 
+                                                                                    : getSetValue(exercise.name, setNum, 'weight') && getSetValue(exercise.name, setNum, 'reps')
+                                                                                        ? 'gradient-bg hover:scale-105'
+                                                                                        : 'bg-gray-600 cursor-not-allowed'
+                                                                            }`}
+                                                                        >
+                                                                            {isCompleted ? '✅' : '✓'}
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 );
@@ -492,12 +582,46 @@
                                                             <span className="mr-2">🏋️</span>
                                                             {workout.workout}
                                                         </h3>
-                                                        <p className="text-sm text-gray-400">{workout.date}</p>
+                                                        <p className="text-sm text-gray-400">
+                                                            {new Date(workout.date).toLocaleDateString('en-US', { 
+                                                                weekday: 'short', 
+                                                                month: 'short', 
+                                                                day: 'numeric',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </p>
                                                     </div>
-                                                    <div className="text-sm text-gray-300">
-                                                        {Object.keys(workout.exercises).length} exercises completed
+                                                    <div className="text-sm text-gray-300 flex flex-col items-end">
+                                                        <span>{workout.completedSets || 0} sets completed</span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {workout.timestamp ? new Date(workout.timestamp).toLocaleTimeString('en-US', { 
+                                                                hour: '2-digit', 
+                                                                minute: '2-digit' 
+                                                            }) : ''}
+                                                        </span>
                                                     </div>
                                                 </div>
+                                                
+                                                {/* Show exercise details */}
+                                                {workout.exercises && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-700">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                            {Object.entries(workout.exercises).map(([exerciseName, sets]) => {
+                                                                const completedSets = Object.values(sets).filter(set => set.completed);
+                                                                if (completedSets.length === 0) return null;
+                                                                
+                                                                return (
+                                                                    <div key={exerciseName} className="text-gray-400">
+                                                                        <span className="font-medium">{exerciseName}:</span>
+                                                                        <span className="ml-1">
+                                                                            {completedSets.map(set => `${set.weight}kg×${set.reps}`).join(', ')}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
