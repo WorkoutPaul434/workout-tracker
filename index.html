@@ -32,9 +32,8 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Initialize Firebase (PASTE YOUR CONFIG BELOW) -->
+    <!-- Initialize Firebase -->
     <script>
-      // Replace the below with your Firebase config from the Firebase Console
       const firebaseConfig = {
         apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
         authDomain: "workout-tracker-62e56.firebaseapp.com",
@@ -51,7 +50,6 @@
         const [state, setState] = React.useState(initialValue);
         const firstLoad = React.useRef(true);
 
-        // Load from Firestore on login or key change
         React.useEffect(() => {
             if (!user) return;
             const db = firebase.firestore();
@@ -64,7 +62,6 @@
             return () => unsub && unsub();
         }, [user, key]);
 
-        // Save to Firestore on state change (skip very first load)
         React.useEffect(() => {
             if (!user) return;
             if (firstLoad.current) { firstLoad.current = false; return; }
@@ -80,7 +77,6 @@
     function ProgressChart({ history, lift }) {
         const ref = React.useRef();
         React.useEffect(() => {
-            // Lazy load Chart.js if not already loaded
             if (!window.Chart) {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -94,17 +90,19 @@
                 const ctx = ref.current.getContext('2d');
                 if (ref.current.chart) { ref.current.chart.destroy(); }
                 // Find best (max) set for the lift per workout
-                const data = history
+                const data = (history || [])
                     .map(entry => {
-                        if (!entry.exercises) return null;
                         let sets = [];
-                        Object.values(entry.exercises).forEach(e => {
-                            if (e && e.lift === lift && Array.isArray(e.sets)) {
-                                sets = sets.concat(e.sets.filter(s => s.done && s.weight && s.reps));
-                            }
-                        });
+                        if (entry.exercises && typeof entry.exercises === "object") {
+                            Object.values(entry.exercises).forEach(e => {
+                                if (e && e.lift === lift && Array.isArray(e.sets)) {
+                                    sets = sets.concat((e.sets || []).filter(s => s && s.done && s.weight && s.reps));
+                                }
+                            });
+                        }
                         // Estimate 1RM for each set (Epley): weight * (1 + reps/30)
                         const bestSet = sets.reduce((best, s) => {
+                            if (!s.weight || !s.reps) return best;
                             const est = s.weight * (1 + s.reps / 30);
                             return !best || est > best.est ? { ...s, est } : best;
                         }, null);
@@ -157,19 +155,13 @@
         const [isPeaking, setIsPeaking] = useCloudState(user, 'isPeaking', false);
         const [peakingWeek, setPeakingWeek] = useCloudState(user, 'peakingWeek', 1);
         const [lightMode, setLightMode] = useCloudState(user, 'lightMode', false);
-
-        // --- Local state ---
-        const [currentDate, setCurrentDate] = React.useState(new Date());
-        const [currentWorkout, setCurrentWorkout] = React.useState({});
-        // --- Set tracking state (persisted per day, per exercise, per set) ---
+        const [customExercises, setCustomExercises] = useCloudState(user, 'customExercises', []);
         const [setInputs, setSetInputs] = React.useState({});
 
-        // --- Custom exercises state ---
-        const [customExercises, setCustomExercises] = useCloudState(user, 'customExercises', []);
+        const [currentDate] = React.useState(new Date());
 
-        // --- Workout Plan + Customization ---
+        // --- Workout Plan ---
         function getWorkoutPlan() {
-            // Merge custom exercises into the plan
             const basePlan = {
                 monday: {
                     name: "Push (Bench Focus)",
@@ -234,7 +226,7 @@
             };
             // Add custom exercises if any
             (customExercises || []).forEach(ex => {
-                if (basePlan[ex.day]) {
+                if (basePlan[ex.day] && !basePlan[ex.day].exercises.find(e => e.name === ex.name)) {
                     basePlan[ex.day].exercises.push({ name: ex.name, sets: ex.sets, lift: ex.lift || null, isCustom: true });
                 }
             });
@@ -242,9 +234,8 @@
         }
         const workoutPlan = getWorkoutPlan();
 
-        // --- Helper functions ---
         const calculateWeight = (lift, percentage) => {
-            const oneRM = oneRepMaxes[lift];
+            const oneRM = oneRepMaxes && oneRepMaxes[lift] ? oneRepMaxes[lift] : 0;
             return Math.round((oneRM * percentage / 100) * 4) / 4;
         };
 
@@ -280,11 +271,9 @@
             if (!isRestDay(today)) setSelectedDay(today);
         }, []);
 
-        // --- Save Workout including setInputs ---
         const saveWorkout = () => {
             const today = currentDate.toISOString().split('T')[0];
             const workoutKey = `${today}-${selectedDay}`;
-
             // Gather exercise data from setInputs
             const exercisesData = {};
             (workoutPlan[selectedDay]?.exercises || []).forEach(exercise => {
@@ -298,18 +287,12 @@
                     })
                 };
             });
-
             setWorkoutHistory(prev => [...(prev || []), {
                 date: today,
                 day: selectedDay,
                 workout: workoutPlan[selectedDay]?.name,
                 exercises: exercisesData
             }]);
-            setCurrentWorkout(prev => ({
-                ...prev,
-                [workoutKey]: undefined
-            }));
-            // Clear setInputs for next workout
             setSetInputs({});
         };
 
@@ -337,15 +320,19 @@
         };
 
         function handleAddCustomExercise(day, name, sets, lift) {
+            if (!day || !name || !sets) return;
             setCustomExercises(prev => [...(prev || []), { day, name, sets, lift }]);
         }
         function handleRemoveCustomExercise(day, name) {
             setCustomExercises(prev => (prev || []).filter(e => !(e.day === day && e.name === name)));
         }
 
-        // --- Google login/logout ---
-        if (authLoading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+        React.useEffect(() => {
+            if (lightMode) document.body.classList.add('light-mode');
+            else document.body.classList.remove('light-mode');
+        }, [lightMode]);
 
+        if (authLoading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
         if (!user) {
             return (
                 <div className="flex flex-col items-center justify-center min-h-screen">
@@ -358,16 +345,9 @@
             );
         }
 
-        // --- Light mode toggle effect ---
-        React.useEffect(() => {
-            if (lightMode) document.body.classList.add('light-mode');
-            else document.body.classList.remove('light-mode');
-        }, [lightMode]);
-
-        // --- Main App UI ---
         return (
             <div className={`min-h-screen ${lightMode ? 'light-mode' : 'bg-gray-900'} mobile-safe`}>
-                {/* Header */}
+                {/* Header and nav */}
                 <div className="sticky top-0 z-50 glass-effect border-b border-red-600/30">
                     <div className="max-w-7xl mx-auto px-4 py-4">
                         <div className="flex items-center justify-between">
@@ -385,7 +365,6 @@
                                 })}
                             </div>
                         </div>
-                        {/* Navigation */}
                         <div className="flex space-x-1 mt-4 overflow-x-auto scrollbar-hide">
                             {[
                                 { id: 'workout', label: 'Workout', icon: '🎯' },
@@ -413,12 +392,10 @@
                         </div>
                     </div>
                 </div>
-
                 <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
                     {/* Workout Tab */}
                     {activeTab === 'workout' && (
                         <>
-                            {/* Weekly Overview */}
                             <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover">
                                 <h2 className="text-lg font-semibold mb-4 flex items-center text-white">
                                     <span className="mr-2">📅</span>
@@ -458,7 +435,6 @@
                                     })}
                                 </div>
                             </div>
-                            {/* Peaking Block Toggle */}
                             <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover">
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
                                     <h3 className="text-lg font-semibold text-white flex items-center">
@@ -505,7 +481,6 @@
                                     Add Custom Exercise
                                 </h3>
                                 <AddCustomExerciseForm onAdd={handleAddCustomExercise} />
-                                {/* List custom exercises for selected day, allow removal */}
                                 {(customExercises || []).filter(e => e.day === selectedDay).length > 0 && (
                                     <div className="mt-4">
                                         <h4 className="text-sm font-semibold text-white mb-2">Your Added Exercises for Today:</h4>
@@ -521,7 +496,6 @@
                                     </div>
                                 )}
                             </div>
-                            {/* Current Workout */}
                             {selectedDay && !isRestDay(selectedDay) && (
                                 <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover">
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 space-y-3 sm:space-y-0">
@@ -561,7 +535,6 @@
                                                     <p className="text-sm text-gray-300 mb-4 font-mono bg-gray-900/50 p-3 rounded-lg">
                                                         {displaySets}
                                                     </p>
-                                                    {/* Set tracking inputs (cloud-synced for history) */}
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         {[1, 2, 3, 4].map(setNum => {
                                                             const setKey = `${exerciseKey}-set${setNum}`;
@@ -640,9 +613,9 @@
                                 Workout History & Progress
                             </h2>
                             <div className="flex flex-wrap gap-6 mb-8">
-                                <ProgressChart history={workoutHistory} lift="bench" />
-                                <ProgressChart history={workoutHistory} lift="squat" />
-                                <ProgressChart history={workoutHistory} lift="deadlift" />
+                                <ProgressChart history={workoutHistory || []} lift="bench" />
+                                <ProgressChart history={workoutHistory || []} lift="squat" />
+                                <ProgressChart history={workoutHistory || []} lift="deadlift" />
                             </div>
                             {(!workoutHistory || workoutHistory.length === 0) ? (
                                 <div className="text-center py-12">
@@ -681,9 +654,9 @@
                                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
                                                             {(exercise.sets || []).map((set, idx) => (
                                                                 <div key={idx} className={`text-xs px-2 py-1 rounded
-                                                                    ${set.done ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-400'}`}>
-                                                                    {set.weight && set.reps ? `${set.weight}kg x ${set.reps}` : '--'}
-                                                                    {set.done && <span className="ml-1">✓</span>}
+                                                                    ${set && set.done ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-400'}`}>
+                                                                    {set && set.weight && set.reps ? `${set.weight}kg x ${set.reps}` : '--'}
+                                                                    {set && set.done && <span className="ml-1">✓</span>}
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -781,7 +754,6 @@
         );
     }
 
-    // --- Add Custom Exercise Form ---
     function AddCustomExerciseForm({ onAdd }) {
         const [day, setDay] = React.useState('monday');
         const [name, setName] = React.useState('');
