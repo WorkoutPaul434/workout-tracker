@@ -27,6 +27,7 @@
         input:focus, select:focus { outline: none; ring: 2px solid #dc2626;}
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none;}
         .scrollbar-hide::-webkit-scrollbar { display: none;}
+        .light-mode { background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%) !important; color: #111 !important;}
     </style>
 </head>
 <body>
@@ -36,11 +37,11 @@
       // Replace the below with your Firebase config from the Firebase Console
       const firebaseConfig = {
         apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
-  authDomain: "workout-tracker-62e56.firebaseapp.com",
-  projectId: "workout-tracker-62e56",
-  storageBucket: "workout-tracker-62e56.firebasestorage.app",
-  messagingSenderId: "195952292211",
-  appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
+        authDomain: "workout-tracker-62e56.firebaseapp.com",
+        projectId: "workout-tracker-62e56",
+        storageBucket: "workout-tracker-62e56.firebasestorage.app",
+        messagingSenderId: "195952292211",
+        appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
       };
       firebase.initializeApp(firebaseConfig);
     </script>
@@ -75,6 +76,70 @@
         return [state, setState];
     }
 
+    // --- Progress Chart using minimal chart.js via CDN ---
+    function ProgressChart({ history, lift }) {
+        const ref = React.useRef();
+        React.useEffect(() => {
+            // Lazy load Chart.js if not already loaded
+            if (!window.Chart) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.onload = renderChart;
+                document.head.appendChild(script);
+            } else {
+                renderChart();
+            }
+            function renderChart() {
+                if (!history || !history.length) return;
+                const ctx = ref.current.getContext('2d');
+                if (ref.current.chart) { ref.current.chart.destroy(); }
+                // Find best (max) set for the lift per workout
+                const data = history
+                    .map(entry => {
+                        if (!entry.exercises) return null;
+                        let sets = [];
+                        Object.values(entry.exercises).forEach(e => {
+                            if (e && e.lift === lift && Array.isArray(e.sets)) {
+                                sets = sets.concat(e.sets.filter(s => s.done && s.weight && s.reps));
+                            }
+                        });
+                        // Estimate 1RM for each set (Epley): weight * (1 + reps/30)
+                        const bestSet = sets.reduce((best, s) => {
+                            const est = s.weight * (1 + s.reps / 30);
+                            return !best || est > best.est ? { ...s, est } : best;
+                        }, null);
+                        return bestSet ? { date: entry.date, est: Math.round(bestSet.est) } : null;
+                    })
+                    .filter(Boolean);
+                if (!data.length) return;
+                ref.current.chart = new window.Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.date),
+                        datasets: [{
+                            label: lift.charAt(0).toUpperCase() + lift.slice(1) + ' (Estimated 1RM)',
+                            data: data.map(d => d.est),
+                            fill: false,
+                            borderColor: 'rgb(239,68,68)',
+                            tension: 0.2,
+                            pointBackgroundColor: 'rgb(239,68,68)'
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Date' }},
+                            y: { title: { display: true, text: 'Estimated 1RM (kg)' }, beginAtZero: false }
+                        }
+                    }
+                });
+            }
+        }, [history, lift]);
+        return (
+            <canvas ref={ref} width={320} height={180} className="bg-gray-900 rounded-xl block mx-auto mb-4" />
+        );
+    }
+
     function WorkoutTracker() {
         const [user, setUser] = React.useState(null);
         const [authLoading, setAuthLoading] = React.useState(true);
@@ -91,76 +156,93 @@
         const [selectedDay, setSelectedDay] = useCloudState(user, 'selectedDay', 'monday');
         const [isPeaking, setIsPeaking] = useCloudState(user, 'isPeaking', false);
         const [peakingWeek, setPeakingWeek] = useCloudState(user, 'peakingWeek', 1);
+        const [lightMode, setLightMode] = useCloudState(user, 'lightMode', false);
 
         // --- Local state ---
         const [currentDate, setCurrentDate] = React.useState(new Date());
         const [currentWorkout, setCurrentWorkout] = React.useState({});
+        // --- Set tracking state (persisted per day, per exercise, per set) ---
+        const [setInputs, setSetInputs] = React.useState({});
 
-        // --- Workout Plan ---
-        const workoutPlan = {
-            monday: {
-                name: "Push (Bench Focus)",
-                emoji: "💪",
-                exercises: [
-                    { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
-                    { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
-                    { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
-                    { name: "Lateral Raises", sets: "3x10-12", lift: null },
-                    { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
-                ]
-            },
-            tuesday: {
-                name: "Pull (Speed Deadlift & Back)",
-                emoji: "🔥",
-                exercises: [
-                    { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
-                    { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
-                    { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
-                    { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
-                    { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
-                    { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
-                ]
-            },
-            wednesday: {
-                name: "Legs (Quad Focus)",
-                emoji: "🦵",
-                exercises: [
-                    { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
-                    { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
-                    { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
-                    { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-                    { name: "Adductors", sets: "2x10-12", lift: null },
-                    { name: "Abductors", sets: "2x10-12", lift: null },
-                    { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
-                ]
-            },
-            friday: {
-                name: "Upper (Incline & Bench)",
-                emoji: "💥",
-                exercises: [
-                    { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
-                    { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
-                    { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
-                    { name: "Chest Supported Row", sets: "2x8-10", lift: null },
-                    { name: "Lateral Raises", sets: "2x10-12", lift: null },
-                    { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
-                    { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
-                ]
-            },
-            saturday: {
-                name: "Lower (Heavy Deadlift)",
-                emoji: "⚡",
-                exercises: [
-                    { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
-                    { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
-                    { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
-                    { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-                    { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
-                ]
-            }
-        };
+        // --- Custom exercises state ---
+        const [customExercises, setCustomExercises] = useCloudState(user, 'customExercises', []);
 
-        // --- Helper functions (same as before) ---
+        // --- Workout Plan + Customization ---
+        function getWorkoutPlan() {
+            // Merge custom exercises into the plan
+            const basePlan = {
+                monday: {
+                    name: "Push (Bench Focus)",
+                    emoji: "💪",
+                    exercises: [
+                        { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
+                        { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
+                        { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
+                        { name: "Lateral Raises", sets: "3x10-12", lift: null },
+                        { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
+                    ]
+                },
+                tuesday: {
+                    name: "Pull (Speed Deadlift & Back)",
+                    emoji: "🔥",
+                    exercises: [
+                        { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
+                        { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
+                        { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
+                        { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
+                        { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
+                        { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
+                    ]
+                },
+                wednesday: {
+                    name: "Legs (Quad Focus)",
+                    emoji: "🦵",
+                    exercises: [
+                        { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
+                        { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
+                        { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
+                        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+                        { name: "Adductors", sets: "2x10-12", lift: null },
+                        { name: "Abductors", sets: "2x10-12", lift: null },
+                        { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
+                    ]
+                },
+                friday: {
+                    name: "Upper (Incline & Bench)",
+                    emoji: "💥",
+                    exercises: [
+                        { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
+                        { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
+                        { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
+                        { name: "Chest Supported Row", sets: "2x8-10", lift: null },
+                        { name: "Lateral Raises", sets: "2x10-12", lift: null },
+                        { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
+                        { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
+                    ]
+                },
+                saturday: {
+                    name: "Lower (Heavy Deadlift)",
+                    emoji: "⚡",
+                    exercises: [
+                        { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
+                        { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
+                        { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
+                        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+                        { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
+                    ]
+                }
+            };
+            // Add custom exercises if any
+            (customExercises || []).forEach(ex => {
+                if (basePlan[ex.day]) {
+                    basePlan[ex.day].exercises.push({ name: ex.name, sets: ex.sets, lift: ex.lift || null, isCustom: true });
+                }
+            });
+            return basePlan;
+        }
+        const workoutPlan = getWorkoutPlan();
+
+        // --- Helper functions ---
         const calculateWeight = (lift, percentage) => {
             const oneRM = oneRepMaxes[lift];
             return Math.round((oneRM * percentage / 100) * 4) / 4;
@@ -198,21 +280,37 @@
             if (!isRestDay(today)) setSelectedDay(today);
         }, []);
 
+        // --- Save Workout including setInputs ---
         const saveWorkout = () => {
             const today = currentDate.toISOString().split('T')[0];
             const workoutKey = `${today}-${selectedDay}`;
-            if (currentWorkout[workoutKey]) {
-                setWorkoutHistory(prev => [...(prev || []), {
-                    date: today,
-                    day: selectedDay,
-                    workout: workoutPlan[selectedDay].name,
-                    exercises: currentWorkout[workoutKey]
-                }]);
-                setCurrentWorkout(prev => ({
-                    ...prev,
-                    [workoutKey]: undefined
-                }));
-            }
+
+            // Gather exercise data from setInputs
+            const exercisesData = {};
+            (workoutPlan[selectedDay]?.exercises || []).forEach(exercise => {
+                const exerciseKey = `${selectedDay}-${exercise.name}`;
+                exercisesData[exerciseKey] = {
+                    name: exercise.name,
+                    lift: exercise.lift || null,
+                    sets: [1,2,3,4].map(setNum => {
+                        const setKey = `${exerciseKey}-set${setNum}`;
+                        return setInputs[setKey] || { weight: '', reps: '', done: false };
+                    })
+                };
+            });
+
+            setWorkoutHistory(prev => [...(prev || []), {
+                date: today,
+                day: selectedDay,
+                workout: workoutPlan[selectedDay]?.name,
+                exercises: exercisesData
+            }]);
+            setCurrentWorkout(prev => ({
+                ...prev,
+                [workoutKey]: undefined
+            }));
+            // Clear setInputs for next workout
+            setSetInputs({});
         };
 
         const getPeakingModifications = (exercise, week) => {
@@ -238,6 +336,13 @@
             }
         };
 
+        function handleAddCustomExercise(day, name, sets, lift) {
+            setCustomExercises(prev => [...(prev || []), { day, name, sets, lift }]);
+        }
+        function handleRemoveCustomExercise(day, name) {
+            setCustomExercises(prev => (prev || []).filter(e => !(e.day === day && e.name === name)));
+        }
+
         // --- Google login/logout ---
         if (authLoading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
 
@@ -253,9 +358,15 @@
             );
         }
 
+        // --- Light mode toggle effect ---
+        React.useEffect(() => {
+            if (lightMode) document.body.classList.add('light-mode');
+            else document.body.classList.remove('light-mode');
+        }, [lightMode]);
+
         // --- Main App UI ---
         return (
-            <div className="min-h-screen bg-gray-900 mobile-safe">
+            <div className={`min-h-screen ${lightMode ? 'light-mode' : 'bg-gray-900'} mobile-safe`}>
                 {/* Header */}
                 <div className="sticky top-0 z-50 glass-effect border-b border-red-600/30">
                     <div className="max-w-7xl mx-auto px-4 py-4">
@@ -387,6 +498,29 @@
                                     </div>
                                 )}
                             </div>
+                            {/* Custom Exercise Add/Remove */}
+                            <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover mb-4">
+                                <h3 className="text-lg font-semibold text-white mb-2 flex items-center">
+                                    <span className="mr-2">➕</span>
+                                    Add Custom Exercise
+                                </h3>
+                                <AddCustomExerciseForm onAdd={handleAddCustomExercise} />
+                                {/* List custom exercises for selected day, allow removal */}
+                                {(customExercises || []).filter(e => e.day === selectedDay).length > 0 && (
+                                    <div className="mt-4">
+                                        <h4 className="text-sm font-semibold text-white mb-2">Your Added Exercises for Today:</h4>
+                                        {(customExercises || []).filter(e => e.day === selectedDay).map(e => (
+                                            <div key={e.name} className="flex items-center space-x-2 mb-1">
+                                                <span className="text-white font-mono">{e.name} ({e.sets})</span>
+                                                <button
+                                                    className="text-xs text-red-400 underline"
+                                                    onClick={() => handleRemoveCustomExercise(e.day, e.name)}
+                                                >Remove</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             {/* Current Workout */}
                             {selectedDay && !isRestDay(selectedDay) && (
                                 <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover">
@@ -405,12 +539,12 @@
                                             <span>Complete Workout</span>
                                         </button>
                                     </div>
-
                                     <div className="space-y-4">
                                         {workoutPlan[selectedDay].exercises.map((exercise, index) => {
                                             const displaySets = isPeaking 
                                                 ? getPeakingModifications(exercise, peakingWeek)
                                                 : parseExerciseWithWeights(exercise);
+                                            const exerciseKey = `${selectedDay}-${exercise.name}`;
                                             return (
                                                 <div key={index} className="border border-red-600/30 rounded-xl p-4 bg-gray-800/50 hover:bg-gray-800/70 transition-all">
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 space-y-2 sm:space-y-0">
@@ -420,30 +554,68 @@
                                                                 {exercise.lift.toUpperCase()}
                                                             </span>
                                                         )}
+                                                        {exercise.isCustom && (
+                                                            <span className="ml-2 text-xs text-yellow-400 font-bold">Custom</span>
+                                                        )}
                                                     </div>
                                                     <p className="text-sm text-gray-300 mb-4 font-mono bg-gray-900/50 p-3 rounded-lg">
                                                         {displaySets}
                                                     </p>
-                                                    {/* Set tracking inputs (not cloud-synced for brevity) */}
+                                                    {/* Set tracking inputs (cloud-synced for history) */}
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        {[1, 2, 3, 4].map(setNum => (
-                                                            <div key={setNum} className="flex space-x-2">
-                                                                <input
-                                                                    type="number"
-                                                                    placeholder="Weight (kg)"
-                                                                    step="0.25"
-                                                                    className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
-                                                                />
-                                                                <input
-                                                                    type="number"
-                                                                    placeholder="Reps"
-                                                                    className="w-16 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
-                                                                />
-                                                                <button className="px-3 py-2 gradient-bg hover:scale-105 rounded-lg text-sm text-white transition-all">
-                                                                    ✓
-                                                                </button>
-                                                            </div>
-                                                        ))}
+                                                        {[1, 2, 3, 4].map(setNum => {
+                                                            const setKey = `${exerciseKey}-set${setNum}`;
+                                                            const input = setInputs[setKey] || { weight: '', reps: '', done: false };
+                                                            return (
+                                                                <div
+                                                                    key={setNum}
+                                                                    className={`flex space-x-2 items-center p-2 rounded-lg transition-all
+                                                                        ${input.done ? 'bg-gray-700 opacity-60 pointer-events-none' : 'bg-gray-900/50'}`}
+                                                                >
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="Weight (kg)"
+                                                                        step="0.25"
+                                                                        value={input.weight}
+                                                                        onChange={e =>
+                                                                            setSetInputs(prev => ({
+                                                                                ...prev,
+                                                                                [setKey]: { ...input, weight: e.target.value }
+                                                                            }))
+                                                                        }
+                                                                        className="flex-1 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
+                                                                        disabled={input.done}
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="Reps"
+                                                                        value={input.reps}
+                                                                        onChange={e =>
+                                                                            setSetInputs(prev => ({
+                                                                                ...prev,
+                                                                                [setKey]: { ...input, reps: e.target.value }
+                                                                            }))
+                                                                        }
+                                                                        className="w-16 px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500 focus:ring-2 focus:ring-red-500"
+                                                                        disabled={input.done}
+                                                                    />
+                                                                    <button
+                                                                        className={`px-3 py-2 rounded-lg text-sm text-white transition-all ${
+                                                                            input.done ? 'bg-gray-500' : 'gradient-bg hover:scale-105'
+                                                                        }`}
+                                                                        onClick={() =>
+                                                                            setSetInputs(prev => ({
+                                                                                ...prev,
+                                                                                [setKey]: { ...input, done: !input.done }
+                                                                            }))
+                                                                        }
+                                                                        type="button"
+                                                                    >
+                                                                        ✓
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             );
@@ -465,8 +637,13 @@
                         <div className="glass-effect rounded-2xl p-4 md:p-6 card-hover">
                             <h2 className="text-lg font-semibold mb-4 flex items-center text-white">
                                 <span className="mr-2">📊</span>
-                                Workout History
+                                Workout History & Progress
                             </h2>
+                            <div className="flex flex-wrap gap-6 mb-8">
+                                <ProgressChart history={workoutHistory} lift="bench" />
+                                <ProgressChart history={workoutHistory} lift="squat" />
+                                <ProgressChart history={workoutHistory} lift="deadlift" />
+                            </div>
                             {(!workoutHistory || workoutHistory.length === 0) ? (
                                 <div className="text-center py-12">
                                     <div className="text-6xl mb-4">📈</div>
@@ -486,9 +663,32 @@
                                                     </h3>
                                                     <p className="text-sm text-gray-400">{workout.date}</p>
                                                 </div>
-                                                <div className="text-sm text-gray-300">
-                                                    {workout.exercises ? Object.keys(workout.exercises).length : 0} exercises completed
-                                                </div>
+                                                <button
+                                                    className="text-xs text-red-400 underline"
+                                                    onClick={() => {
+                                                        setWorkoutHistory(prev => prev.filter((_, i) => i !== prev.length - 1 - index));
+                                                    }}
+                                                >Delete</button>
+                                            </div>
+                                            {/* Expanded workout details */}
+                                            <div className="mt-3 space-y-2">
+                                                {workout.exercises && Object.entries(workout.exercises).map(([ekey, exercise]) => (
+                                                    <div key={ekey}>
+                                                        <span className="font-semibold text-white">{exercise.name}</span>
+                                                        {exercise.lift && (
+                                                            <span className="ml-2 text-xs text-red-300 font-mono">[{exercise.lift.toUpperCase()}]</span>
+                                                        )}
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                                                            {(exercise.sets || []).map((set, idx) => (
+                                                                <div key={idx} className={`text-xs px-2 py-1 rounded
+                                                                    ${set.done ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-400'}`}>
+                                                                    {set.weight && set.reps ? `${set.weight}kg x ${set.reps}` : '--'}
+                                                                    {set.done && <span className="ml-1">✓</span>}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     ))}
@@ -505,7 +705,7 @@
                                     One Rep Max Settings
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {Object.entries(oneRepMaxes || {}).map(([lift, max]) => (
+                                    {['bench', 'deadlift', 'squat'].map((lift) => (
                                         <div key={lift} className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-300 capitalize flex items-center">
                                                 <span className="mr-2">
@@ -516,7 +716,7 @@
                                             <input
                                                 type="number"
                                                 step="0.25"
-                                                value={max}
+                                                value={oneRepMaxes[lift]}
                                                 onChange={(e) => setOneRepMaxes(prev => ({
                                                     ...prev,
                                                     [lift]: parseFloat(e.target.value) || 0
@@ -532,7 +732,7 @@
                                         Calculated Working Weights
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {Object.entries(oneRepMaxes || {}).map(([lift, max]) => (
+                                        {['bench', 'deadlift', 'squat'].map((lift) => (
                                             <div key={lift} className="space-y-2">
                                                 <div className="font-medium capitalize text-red-400 flex items-center">
                                                     <span className="mr-2">
@@ -562,11 +762,71 @@
                                         ))}
                                     </div>
                                 </div>
+                                <div className="mt-8">
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={lightMode}
+                                            onChange={e => setLightMode(e.target.checked)}
+                                            className="w-5 h-5 rounded border-gray-600 text-red-600 focus:ring-red-500 bg-gray-800"
+                                        />
+                                        <span className="text-sm font-medium text-white">Enable Light Mode</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
+        );
+    }
+
+    // --- Add Custom Exercise Form ---
+    function AddCustomExerciseForm({ onAdd }) {
+        const [day, setDay] = React.useState('monday');
+        const [name, setName] = React.useState('');
+        const [sets, setSets] = React.useState('');
+        const [lift, setLift] = React.useState('');
+        return (
+            <form
+                className="flex flex-col sm:flex-row items-center gap-2"
+                onSubmit={e => {
+                    e.preventDefault();
+                    if (!name.trim() || !sets.trim()) return;
+                    onAdd(day, name.trim(), sets.trim(), lift.trim() || undefined);
+                    setName('');
+                    setSets('');
+                    setLift('');
+                }}
+            >
+                <select value={day} onChange={e => setDay(e.target.value)}
+                    className="border border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-800 text-white focus:ring-2 focus:ring-red-500">
+                    {['monday','tuesday','wednesday','friday','saturday'].map(d => (
+                        <option value={d} key={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                    ))}
+                </select>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                    placeholder="Exercise Name"
+                    className="px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500"
+                    maxLength={32}
+                />
+                <input type="text" value={sets} onChange={e => setSets(e.target.value)}
+                    placeholder="Sets e.g. 3x8"
+                    className="px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-900 text-white placeholder-gray-500"
+                    maxLength={24}
+                />
+                <select value={lift} onChange={e => setLift(e.target.value)}
+                    className="border border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-800 text-white focus:ring-2 focus:ring-red-500"
+                >
+                    <option value="">No 1RM</option>
+                    <option value="bench">Bench</option>
+                    <option value="deadlift">Deadlift</option>
+                    <option value="squat">Squat</option>
+                </select>
+                <button type="submit"
+                    className="gradient-bg px-4 py-2 rounded-lg text-white text-sm font-semibold hover:scale-105 transition-all"
+                >Add</button>
+            </form>
         );
     }
 
