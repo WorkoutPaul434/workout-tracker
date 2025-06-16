@@ -504,6 +504,7 @@ function WorkoutTracker() {
         const ref = db.collection('users').doc(user.uid);
         await ref.update({ weekSplit: null });
     }
+     alert("This week's plan has been reset to the main split.");     
 };
 
 // Function to restore your main split to the original default split (does NOT touch this week's plan)
@@ -514,6 +515,8 @@ const restoreDefaultSplit = async () => {
         const ref = db.collection('users').doc(user.uid);
         await ref.update({ customSplit: defaultSplit });
     }
+    alert("All changes have been reset to the original split.");
+};
 };
     const saveWorkout = () => {
         const today = new Date().toISOString().split('T')[0];
@@ -610,11 +613,23 @@ const restoreDefaultSplit = async () => {
                             <h2 className="text-lg font-semibold mb-4 flex items-center text-white">
                                 <span className="mr-2">📅</span>
                                 Weekly Split
-                                <button
-                                    onClick={resetWeekPlan}
-                                    className="ml-4 text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
-                                    title="Reset to Default"
-                                >Reset week</button>
+                                <div className="flex flex-row gap-2 ml-4">
+        <button
+            onClick={resetWeekPlan}
+            className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+            title="Reset to Default"
+        >
+            Reset week
+        </button>
+        <button
+            onClick={restoreDefaultSplit}
+            className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+            title="Restore original split"
+        >
+            Restore original split
+        </button>
+    </div>
+</h2>
                             </h2>
                             <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
                                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
