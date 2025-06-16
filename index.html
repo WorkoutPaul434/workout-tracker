@@ -70,7 +70,6 @@
         @media (max-width: 640px) {
             .edit-modal { min-width:95vw; padding:1rem 0.2rem;}
         }
-        /* Sticky workout button (mobile) */
         @media (max-width: 800px) {
             .sticky-complete-btn {
                 position:fixed; z-index:900; left:0; right:0; bottom:0;
@@ -88,14 +87,14 @@ const firebaseConfig = {
     apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
     authDomain: "workout-tracker-62e56.firebaseapp.com",
     projectId: "workout-tracker-62e56",
-    storageBucket: "workout-tracker-62e56.firebasestorage.app",
+    storageBucket: "workout-tracker-62e56.appspot.com",
     messagingSenderId: "195952292211",
     appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
 };
 firebase.initializeApp(firebaseConfig);
 </script>
 <script type="text/babel">
-
+// --- Helper Hooks and Components ---
 function useCloudState(user, key, initialValue) {
     const [state, setState] = React.useState(initialValue);
     const firstLoad = React.useRef(true);
@@ -123,7 +122,6 @@ function useCloudState(user, key, initialValue) {
     return [state, setState];
 }
 
-// Chart.js Chart
 function ProgressChart({ history, lift }) {
     const ref = React.useRef();
     React.useEffect(() => {
@@ -186,7 +184,6 @@ function ProgressChart({ history, lift }) {
     );
 }
 
-// Pencil SVG
 function PencilIcon({className}) {
     return (
         <svg className={className} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
@@ -197,7 +194,6 @@ function PencilIcon({className}) {
     );
 }
 
-// Modal for editing exercises
 function EditExerciseModal({ show, onClose, exercise, onSave, isNew, days, allLifts, onlyForWeek, setOnlyForWeek }) {
     const [name, setName] = React.useState(exercise?.name || "");
     const [sets, setSets] = React.useState(exercise?.sets || "");
@@ -274,7 +270,6 @@ function getMonday(date) {
     return new Date(d.setDate(diff));
 }
 
-// Find max weight and reps for an exercise in the previous week in workout history
 function lastWeekStats(history, day, exName) {
     if (!history || !history.length) return null;
     const now = new Date();
@@ -301,12 +296,11 @@ function lastWeekStats(history, day, exName) {
 }
 
 function parseSetsWithWeights(sets, lift, oneRepMaxes) {
-    // always show percentages and calculated weights together
     let parsed = sets;
     const patterns = [ /(\d+-\d+)%/g, /(\d+)%/g ];
     patterns.forEach(pattern => {
         parsed = parsed.replace(pattern, (match, percentage) => {
-            if (!lift) return match;
+            if (!lift || !oneRepMaxes[lift]) return match;
             if (percentage.includes('-')) {
                 const [min, max] = percentage.split('-').map(Number);
                 const minWeight = Math.round((oneRepMaxes[lift] * min / 100)*4)/4;
@@ -321,6 +315,7 @@ function parseSetsWithWeights(sets, lift, oneRepMaxes) {
     return parsed;
 }
 
+// --- Main App Component ---
 function WorkoutTracker() {
     const [user, setUser] = React.useState(null);
     const [authLoading, setAuthLoading] = React.useState(true);
@@ -329,7 +324,6 @@ function WorkoutTracker() {
         return () => unsub();
     }, []);
 
-    // --- Cloud states ---
     const [oneRepMaxes, setOneRepMaxes] = useCloudState(user, 'oneRepMaxes', { bench: 102, deadlift: 143, squat: 125 });
     const [workoutHistory, setWorkoutHistory] = useCloudState(user, 'workoutHistory', []);
     const [activeTab, setActiveTab] = useCloudState(user, 'activeTab', 'workout');
@@ -338,7 +332,6 @@ function WorkoutTracker() {
     const [peakingWeek, setPeakingWeek] = useCloudState(user, 'peakingWeek', 1);
     const [lightMode, setLightMode] = useCloudState(user, 'lightMode', false);
 
-    // Split is now customizable and cloud-synced!
     const defaultSplit = {
         monday: [
             { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
@@ -384,11 +377,6 @@ function WorkoutTracker() {
     const [split, setSplit] = useCloudState(user, 'customSplit', defaultSplit);
     const [weekSplit, setWeekSplit] = React.useState(null);
 
-    const getPlanForDay = (day) => {
-        if (weekSplit && weekSplit[day]) return weekSplit[day];
-        return split[day] || [];
-    };
-
     const [setInputs, setSetInputs] = React.useState({});
     const [editMode, setEditMode] = React.useState(false);
     const [editDay, setEditDay] = React.useState("");
@@ -402,6 +390,11 @@ function WorkoutTracker() {
     const emojiMap = { monday:"💪", tuesday:"🔥", wednesday:"🦵", friday:"💥", saturday:"⚡" };
     const dayTitles = { monday:"Push (Bench Focus)", tuesday:"Pull (Deadlift & Back)", wednesday:"Legs (Quad Focus)", friday:"Upper (Incline & Bench)", saturday:"Lower (Heavy Deadlift)" };
 
+    const getPlanForDay = (day) => {
+        if (weekSplit && weekSplit[day]) return weekSplit[day];
+        return split[day] || [];
+    };
+
     const calculateWeight = (lift, percentage) => {
         const oneRM = oneRepMaxes && oneRepMaxes[lift] ? oneRepMaxes[lift] : 0;
         return Math.round((oneRM * percentage / 100) * 4) / 4;
@@ -409,7 +402,6 @@ function WorkoutTracker() {
     const parseExerciseWithWeights = (exercise) => {
         return parseSetsWithWeights(exercise.sets, exercise.lift, oneRepMaxes);
     };
-
     const getCurrentDayName = () => {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         return days[new Date().getDay()];
@@ -421,7 +413,6 @@ function WorkoutTracker() {
         if (!isRestDay(today)) setSelectedDay(today);
     }, []);
 
-    // Peaking logic
     const getPeakingModifications = (exercise, week) => {
         if (!exercise.lift) return exercise.sets;
         let sets = exercise.sets;
@@ -446,7 +437,6 @@ function WorkoutTracker() {
             default:
                 sets = exercise.sets;
         }
-        // Always show both percentage and weight
         return parseSetsWithWeights(sets, exercise.lift, oneRepMaxes);
     };
 
@@ -512,29 +502,28 @@ function WorkoutTracker() {
             setSplit(prev => ({...prev, [day]: newRoutine }));
         }
     };
-    // Reset week split to default
-    const resetWeekPlan = async () => {
-    setWeekSplit(null);
-    setEditModalOpen(false);
-    if (user) {
-        const db = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        await ref.update({ weekSplit: null });
-    }
-     alert("This week's plan has been reset to the main split.");     
-};
 
-// Function to restore your main split to the original default split (does NOT touch this week's plan)
-const restoreDefaultSplit = async () => {
-    setSplit(defaultSplit);
-    if (user) {
-        const db = firebase.firestore();
-        const ref = db.collection('users').doc(user.uid);
-        await ref.update({ customSplit: defaultSplit });
-    }
-    alert("All changes have been reset to the original split.");
-};
-};
+    const resetWeekPlan = async () => {
+        setWeekSplit(null);
+        setEditModalOpen(false);
+        if (user) {
+            const db = firebase.firestore();
+            const ref = db.collection('users').doc(user.uid);
+            await ref.update({ weekSplit: null });
+        }
+        alert("This week's plan has been reset to the main split.");
+    };
+
+    const restoreDefaultSplit = async () => {
+        setSplit(defaultSplit);
+        if (user) {
+            const db = firebase.firestore();
+            const ref = db.collection('users').doc(user.uid);
+            await ref.update({ customSplit: defaultSplit });
+        }
+        alert("All changes have been reset to the original split.");
+    };
+
     const saveWorkout = () => {
         const today = new Date().toISOString().split('T')[0];
         const dayPlan = getPlanForDay(selectedDay);
@@ -574,7 +563,6 @@ const restoreDefaultSplit = async () => {
         );
     }
 
-    // --- Main UI ---
     return (
         <div className={`min-h-screen ${lightMode ? 'light-mode' : 'bg-gray-900'} mobile-safe`}>
             {/* Header and nav */}
@@ -1071,6 +1059,7 @@ const restoreDefaultSplit = async () => {
             )}
         </div>
     );
+    
 }
 
 ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
