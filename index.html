@@ -667,13 +667,15 @@ const progressionData = progressionPlan.find(w => w.week === progressionWeek);
                                         >
                                             <div className="font-medium text-sm mb-1">{day.slice(0, 3)}</div>
                                             <div className="text-xs">
-                                                {isRest ? '😴 Rest' : (
-                                                    <div>
-                                                        <div className="text-lg mb-1">{emojiMap[dayKey]}</div>
-                                                        <div>{(dayTitles[dayKey] || "").split(' ')[0]}</div>
-                                                    </div>
-                                                )}
-                                            </div>
+    {isRest ? (
+        <span>😴 Rest</span>
+    ) : (
+        <div>
+            <div className="text-lg mb-1">{emojiMap[dayKey]}</div>
+            <div>{(dayTitles[dayKey] || "").split(' ')[0]}</div>
+        </div>
+    )}
+</div>
                                             {!isRest && <span
                                                 className="absolute top-1 right-2 pencil-btn"
                                                 title="Edit Day"
