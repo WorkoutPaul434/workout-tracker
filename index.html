@@ -8,6 +8,594 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase v9+ compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); min-height: 100vh; color: white; overflow-x: hidden;}
+        .gradient-bg { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);}
+        .glass-effect { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border: 1px solid rgba(220, 38, 38, 0.2);}
+        .card-hover { transition: all 0.3s ease;}
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(220, 38, 38, 0.2);}
+        .glow { box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);}
+        .pulse-animation { animation: pulse 2s infinite;}
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .mobile-safe { padding-bottom: env(safe-area-inset-bottom);}
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none;}
+        .scrollbar-hide::-webkit-scrollbar { display: none;}
+        .light-mode { background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%) !important; color: #111 !important;}
+        .edit-overlay {
+            background: rgba(0,0,0,0.5); position: fixed; z-index: 1000; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .edit-modal {
+            background: #18181b;
+            color: #fff;
+            border-radius: 1rem;
+            padding: 0;
+            min-width: 300px; max-width: 98vw; width: 370px;
+            box-shadow: 0 0 40px #0008;
+            z-index: 1001;
+            max-height: 94vh;
+            overflow-y: auto;
+        }
+        .edit-modal-header {
+            border-radius: 1rem 1rem 0 0;
+            padding: 1.2rem 1.5rem .5rem 1.5rem;
+            background: #212125;
+            border-bottom: 1.5px solid #333;
+        }
+        .edit-modal-title {
+            font-size: 1.22rem;
+            font-weight: 700;
+            letter-spacing: .01em;
+        }
+        .edit-modal-content {
+            padding: 1.2rem 1.5rem 1.3rem 1.5rem;
+        }
+        .edit-modal-footer {
+            border-top: 1.5px solid #333;
+            padding: 1.1rem 1.5rem;
+            border-radius: 0 0 1rem 1rem;
+            background: #212125;
+        }
+        .edit-modal input, .edit-modal select {
+            background: #23232b;
+            color: #fff;
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #444;
+            padding: 0.57rem 0.75rem;
+            margin-bottom: 1.1rem;
+            font-size: 1rem;
+        }
+        .edit-modal label { margin-bottom: 0.18rem; display: block; font-weight: 500; }
+        .edit-modal .row-actions { display:flex; gap:0.35em; }
+        .edit-modal .row-actions .icon-btn {
+            border:none; background: #23242a; color:#aaa;
+            border-radius: 0.5em; padding: 0.32em 0.42em;
+            display:inline-flex; align-items:center; justify-content:center;
+            font-size:1.15em; cursor:pointer; transition:.14s;
+        }
+        .edit-modal .row-actions .icon-btn:hover {
+            background:#35363e; color: #fff;
+        }
+        .edit-modal .row-actions .icon-btn.delete { background:#661d1d; color:#fff;}
+        .edit-modal .row-actions .icon-btn.delete:hover { background:#991b1b; color:#fff;}
+        .edit-modal .row-actions .icon-btn.up, .edit-modal .row-actions .icon-btn.down {
+            background:#1d3146; color:#78a1e6;
+        }
+        .edit-modal .row-actions .icon-btn.up:hover, .edit-modal .row-actions .icon-btn.down:hover {
+            background:#27466b; color:#fff;
+        }
+        .edit-modal .row-actions .icon-btn.pencil {
+            background:#23232a; color:#bbb;
+            border:1.5px solid #555;
+            border-radius:0.6em;
+            font-size:1.15em;
+        }
+        .edit-modal .row-actions .icon-btn.pencil:hover {
+            background:#333740; border-color:#dc2626; color:#fff;
+        }
+        .edit-ex-add-row {
+            display:flex; align-items:end; gap:0.43em; margin-bottom:1rem;
+        }
+        .edit-ex-add-row input, .edit-ex-add-row select {
+            margin-bottom:0; max-width:6.5em; min-width:3.5em; padding:.42em .7em; font-size:.96em;
+        }
+        .edit-ex-add-row input[name="name"] { flex:2 2 0%; min-width:6em; }
+        .edit-ex-add-row input[name="sets"] { flex:1 1 0%; }
+        .edit-ex-add-row select[name="lift"] { flex:1 1 0%; }
+        .edit-ex-add-row select[name="day"] { flex:1 1 0%; min-width:3.5em;}
+        .edit-ex-add-row .btn { margin-bottom:0; }
+        .edit-list {
+            margin:0; padding:0; list-style:none;
+        }
+        .edit-list li {
+            display:flex; align-items:center; justify-content:space-between;
+            font-size:1em; padding:.5em 0 .42em 0; border-bottom:1px solid #23232a;
+            margin-bottom:.2em;
+        }
+        .edit-list .ex-info {
+            display:flex; flex-direction:column; flex:1 1 0%; min-width:0;
+        }
+        .edit-list .ex-info span:first-child {
+            font-weight:500; font-size:1.04em; color:#fff; line-height:1.1;
+            text-overflow:ellipsis;overflow:hidden;white-space:nowrap; max-width:11em;
+        }
+        .edit-list .ex-info span:last-child {
+            font-size:.94em; color:#bbb; opacity:.8; margin-top:.1em; font-family:monospace;
+            text-overflow:ellipsis;overflow:hidden;white-space:nowrap; max-width:13em;
+        }
+        .edit-list .ex-lift-tag {
+            font-size:.8em; font-family:monospace;
+            background:#222b; color:#aaa; border-radius:5px; padding:0 .39em; margin-left:0.7em;
+        }
+        .edit-modal .footer-btn { border-radius:.5em; padding:.65em 1.3em; font-weight:600; }
+        .edit-modal .footer-btn.primary { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color:#fff;}
+        .edit-modal .footer-btn.secondary { background:#23232a; color:#eee;}
+        .edit-modal .footer-btn.secondary:hover { background:#35363e;}
+        .edit-modal .footer-btn.primary:hover { background: linear-gradient(135deg, #a41f1f 0%, #4e0f0f 100%);}
+        @media (max-width: 640px) {
+            .edit-modal { min-width:95vw; width:97vw; }
+        }
+        .pencil-btn {
+            display:inline-flex; align-items:center; justify-content:center;
+            width:2.2em; height:2.2em; background:#23272b;
+            border-radius:0.7em; border:1.5px solid #555;
+            color:#bbb; margin-left:0.5em; margin-right:0.2em;
+            box-shadow:0 1px 2px #0005; font-size:1.3em;
+            transition:background 0.15s,border 0.15s, color 0.12s;
+        }
+        .pencil-btn:active, .pencil-btn:focus, .pencil-btn:hover {
+            background:#333740; border-color:#dc2626; color:#fff;
+        }
+        @media (max-width: 800px) {
+            .sticky-complete-btn {
+                position:fixed; z-index:900; left:0; right:0; bottom:0;
+                width:100vw; border-radius:0; border-left:none; border-right:none;
+                margin:0; padding:0.5rem 2vw;
+                box-shadow:0 -2px 18px #0004;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// Firebase config and app
+const firebaseConfig = {
+    apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
+    authDomain: "workout-tracker-62e56.firebaseapp.com",
+    projectId: "workout-tracker-62e56",
+    storageBucket: "workout-tracker-62e56.appspot.com",
+    messagingSenderId: "195952292211",
+    appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
+};
+firebase.initializeApp(firebaseConfig);
+
+// React + Firebase cloud state hook
+function useCloudState(user, key, initialValue) {
+    const [state, setState] = React.useState(initialValue);
+    const firstLoad = React.useRef(true);
+
+    React.useEffect(() => {
+        if (!user) return;
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        let unsub = ref.onSnapshot(doc => {
+            if (doc.exists && doc.data()[key] !== undefined) {
+                setState(doc.data()[key]);
+            }
+        });
+        return () => unsub && unsub();
+    }, [user, key]);
+
+    React.useEffect(() => {
+        if (!user) return;
+        if (firstLoad.current) { firstLoad.current = false; return; }
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        ref.set({ [key]: state }, { merge: true });
+    }, [user, key, state]);
+
+    return [state, setState];
+}
+
+function PencilIcon({className}) {
+    return (
+        <svg className={className} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
+            viewBox="0 0 24 24">
+            <rect x="0" y="0" width="24" height="24" fill="none"/>
+            <path d="M16.862 3.487a2.2 2.2 0 0 1 3.11 3.109l-11.48 11.48-3.618.507.507-3.618 11.481-11.478z"/>
+        </svg>
+    );
+}
+
+// Utility: parse sets string with weights
+function parseSetsWithWeights(sets, lift, oneRepMaxes) {
+    let parsed = sets;
+    const patterns = [ /(\d+-\d+)%/g, /(\d+)%/g ];
+    patterns.forEach(pattern => {
+        parsed = parsed.replace(pattern, (match, percentage) => {
+            if (!lift) return match;
+            if (percentage.includes('-')) {
+                const [min, max] = percentage.split('-').map(Number);
+                const minWeight = Math.round((oneRepMaxes[lift] * min / 100)*4)/4;
+                const maxWeight = Math.round((oneRepMaxes[lift] * max / 100)*4)/4;
+                return `${percentage}% (${minWeight}-${maxWeight}kg)`;
+            } else {
+                const weight = Math.round((oneRepMaxes[lift] * parseInt(percentage)/100)*4)/4;
+                return `${percentage}% (${weight}kg)`;
+            }
+        });
+    });
+    return parsed;
+}
+
+// Utility: get current day name
+function getCurrentDayName() {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[new Date().getDay()];
+}
+function isRestDay(day) {
+    return day === 'thursday' || day === 'sunday';
+}
+
+// Utility: chart (optional)
+function ProgressChart({ history, lift }) {
+    const ref = React.useRef();
+    React.useEffect(() => {
+        if (!window.Chart) {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.onload = renderChart;
+            document.head.appendChild(script);
+        } else {
+            renderChart();
+        }
+        function renderChart() {
+            if (!history || !history.length) return;
+            const ctx = ref.current.getContext('2d');
+            if (ref.current.chart) { ref.current.chart.destroy(); }
+            const data = (history || [])
+                .map(entry => {
+                    let sets = [];
+                    if (entry.exercises && typeof entry.exercises === "object") {
+                        Object.values(entry.exercises).forEach(e => {
+                            if (e && e.lift === lift && Array.isArray(e.sets)) {
+                                sets = sets.concat((e.sets || []).filter(s => s && s.done && s.weight && s.reps));
+                            }
+                        });
+                    }
+                    const bestSet = sets.reduce((best, s) => {
+                        if (!s.weight || !s.reps) return best;
+                        const est = s.weight * (1 + s.reps / 30);
+                        return !best || est > best.est ? { ...s, est } : best;
+                    }, null);
+                    return bestSet ? { date: entry.date, est: Math.round(bestSet.est) } : null;
+                })
+                .filter(Boolean);
+            if (!data.length) return;
+            ref.current.chart = new window.Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: lift.charAt(0).toUpperCase() + lift.slice(1) + ' (Estimated 1RM)',
+                        data: data.map(d => d.est),
+                        fill: false,
+                        borderColor: 'rgb(239,68,68)',
+                        tension: 0.2,
+                        pointBackgroundColor: 'rgb(239,68,68)'
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Date' }},
+                        y: { title: { display: true, text: 'Estimated 1RM (kg)' }, beginAtZero: false }
+                    }
+                }
+            });
+        }
+    }, [history, lift]);
+    return (
+        <canvas ref={ref} width={320} height={180} className="bg-gray-900 rounded-xl block mx-auto mb-4" />
+    );
+}
+
+// Edit Day Modal (as in previous messages)
+function EditDayModal({ show, day, baseSplit, weekSplit, setBaseSplit, setWeekSplit, onClose, allLifts, allDays }) {
+    const [addName, setAddName] = React.useState("");
+    const [addSets, setAddSets] = React.useState("");
+    const [addLift, setAddLift] = React.useState("");
+    const [addForWeek, setAddForWeek] = React.useState(false);
+    const [editIdx, setEditIdx] = React.useState(-1);
+    const [editName, setEditName] = React.useState("");
+    const [editSets, setEditSets] = React.useState("");
+    const [editLift, setEditLift] = React.useState("");
+    const [editForWeek, setEditForWeek] = React.useState(false);
+
+    const isWeek = weekSplit && weekSplit[day];
+    const routine = (isWeek ? weekSplit[day] : baseSplit[day]) || [];
+
+    function handleAddExercise(e) {
+        e.preventDefault();
+        if (!addName.trim() || !addSets.trim()) return;
+        const ex = { name: addName.trim(), sets: addSets.trim(), lift: addLift || null, day };
+        if (addForWeek) {
+            setWeekSplit(prev => ({
+                ...prev,
+                [day]: [...(prev?.[day] || []), ex]
+            }));
+        } else {
+            setBaseSplit(prev => ({
+                ...prev,
+                [day]: [...(prev?.[day] || []), ex]
+            }));
+        }
+        setAddName(""); setAddSets(""); setAddLift("");
+    }
+    function startEdit(idx) {
+        setEditIdx(idx);
+        setEditName(routine[idx].name);
+        setEditSets(routine[idx].sets);
+        setEditLift(routine[idx].lift || "");
+        setEditForWeek(!!isWeek);
+    }
+    function handleEditExercise(idx) {
+        if (!editName.trim() || !editSets.trim()) return;
+        const ex = { name: editName.trim(), sets: editSets.trim(), lift: editLift || null, day };
+        if (editForWeek) {
+            setWeekSplit(prev => ({
+                ...prev,
+                [day]: prev[day].map((o,i)=>i===idx?ex:o)
+            }));
+        } else {
+            setBaseSplit(prev => ({
+                ...prev,
+                [day]: prev[day].map((o,i)=>i===idx?ex:o)
+            }));
+        }
+        setEditIdx(-1);
+    }
+    function handleDelete(idx) {
+        if (isWeek) {
+            setWeekSplit(prev => ({
+                ...prev,
+                [day]: prev[day].filter((_,i)=>i!==idx)
+            }));
+        } else {
+            setBaseSplit(prev => ({
+                ...prev,
+                [day]: prev[day].filter((_,i)=>i!==idx)
+            }));
+        }
+    }
+    function move(idx, dir) {
+        if ((dir < 0 && idx === 0) || (dir > 0 && idx === routine.length-1)) return;
+        const arr = [...routine];
+        [arr[idx], arr[idx+dir]] = [arr[idx+dir], arr[idx]];
+        if (isWeek) setWeekSplit(prev => ({...prev, [day]: arr}));
+        else setBaseSplit(prev => ({...prev, [day]: arr}));
+    }
+
+    if (!show) return null;
+    return (
+    <div className="edit-overlay">
+        <form
+            className="edit-modal"
+            onSubmit={handleAddExercise}
+            onKeyDown={e => { if (e.key === "Enter" && document.activeElement.tagName !== "TEXTAREA") e.preventDefault(); }}>
+            <div className="edit-modal-header">
+                <div className="edit-modal-title flex items-center justify-between">
+                    Edit {day.charAt(0).toUpperCase()+day.slice(1)} Routine
+                    <button type="button" className="text-gray-400 hover:text-red-400 font-bold text-xl" onClick={onClose} aria-label="Close">&times;</button>
+                </div>
+            </div>
+            <div className="edit-modal-content">
+                <div className="edit-ex-add-row mb-5">
+                    <input name="name" value={addName} onChange={e=>setAddName(e.target.value)} placeholder="Exercise name" />
+                    <input name="sets" value={addSets} onChange={e=>setAddSets(e.target.value)} placeholder="Sets/reps" />
+                    <select name="lift" value={addLift} onChange={e=>setAddLift(e.target.value)}>
+                        <option value="">-1RM-</option>
+                        {allLifts.map(l=><option key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</option>)}
+                    </select>
+                    <label className="flex items-center mb-0" title="Only for this week?">
+                        <input type="checkbox" className="mr-1" checked={addForWeek} onChange={e=>setAddForWeek(e.target.checked)} />
+                        <span className="text-xs text-gray-300">Week</span>
+                    </label>
+                    <button className="btn footer-btn primary" type="submit" style={{padding:"0.5em 1.1em"}}>Add</button>
+                </div>
+                <ul className="edit-list">
+                    {routine.map((ex, idx)=>(
+                        <li key={idx}>
+                            {editIdx === idx ? (
+                                <form
+                                    className="flex flex-row items-end gap-2 flex-1"
+                                    onSubmit={e=>{e.preventDefault();handleEditExercise(idx);}}
+                                    style={{minWidth:0}}
+                                >
+                                    <input value={editName} onChange={e=>setEditName(e.target.value)} style={{maxWidth:"7em"}} />
+                                    <input value={editSets} onChange={e=>setEditSets(e.target.value)} style={{maxWidth:"6em"}} />
+                                    <select value={editLift} onChange={e=>setEditLift(e.target.value)}>
+                                        <option value="">-1RM-</option>
+                                        {allLifts.map(l=><option key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</option>)}
+                                    </select>
+                                    <label className="flex items-center mb-0" title="Only for this week?">
+                                        <input type="checkbox" className="mr-1" checked={editForWeek} onChange={e=>setEditForWeek(e.target.checked)} />
+                                        <span className="text-xs text-gray-300">Week</span>
+                                    </label>
+                                    <button type="submit" className="btn footer-btn primary" style={{padding:"0.4em 1em"}}>Save</button>
+                                    <button type="button" className="btn footer-btn secondary" style={{padding:"0.4em 1em"}} onClick={()=>setEditIdx(-1)}>Cancel</button>
+                                </form>
+                            ) : (
+                                <>
+                                <div className="ex-info">
+                                    <span>{ex.name}
+                                        {ex.lift && <span className="ex-lift-tag">{ex.lift.toUpperCase()}</span>}
+                                    </span>
+                                    <span>{ex.sets}</span>
+                                </div>
+                                <div className="row-actions ml-2 flex-nowrap">
+                                    <button type="button" className="icon-btn pencil" title="Edit"
+                                        onClick={()=>startEdit(idx)}><PencilIcon /></button>
+                                    <button type="button" className="icon-btn up" title="Move up"
+                                        onClick={()=>move(idx,-1)}>&uarr;</button>
+                                    <button type="button" className="icon-btn down" title="Move down"
+                                        onClick={()=>move(idx,1)}>&darr;</button>
+                                    <button type="button" className="icon-btn delete" title="Delete"
+                                        onClick={()=>handleDelete(idx)}>&#128465;</button>
+                                </div>
+                                </>
+                            )}
+                        </li>
+                    ))}
+                    {routine.length === 0 && <li className="text-sm text-gray-400 italic py-2">No exercises for this day.</li>}
+                </ul>
+            </div>
+            <div className="edit-modal-footer flex flex-row-reverse gap-2">
+                <button type="button" className="footer-btn secondary" onClick={onClose}>Done</button>
+            </div>
+        </form>
+    </div>
+    );
+}
+
+// The main WorkoutTracker component
+function WorkoutTracker() {
+    const [user, setUser] = React.useState(null);
+    const [authLoading, setAuthLoading] = React.useState(true);
+    React.useEffect(() => {
+        const unsub = firebase.auth().onAuthStateChanged(u => { setUser(u); setAuthLoading(false); });
+        return () => unsub();
+    }, []);
+
+    // --- Default Split ---
+    const defaultSplit = {
+        monday: [
+            { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
+            { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
+            { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
+            { name: "Lateral Raises", sets: "3x10-12", lift: null },
+            { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
+        ],
+        tuesday: [
+            { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
+            { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
+            { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
+            { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
+            { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
+            { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
+        ],
+        wednesday: [
+            { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
+            { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
+            { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
+            { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+            { name: "Adductors", sets: "2x10-12", lift: null },
+            { name: "Abductors", sets: "2x10-12", lift: null },
+            { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
+        ],
+        friday: [
+            { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
+            { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
+            { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
+            { name: "Chest Supported Row", sets: "2x8-10", lift: null },
+            { name: "Lateral Raises", sets: "2x10-12", lift: null },
+            { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
+            { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
+        ],
+        saturday: [
+            { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
+            { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
+            { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
+            { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+            { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
+        ],
+    };
+
+    // --- App State ---
+    const [oneRepMaxes, setOneRepMaxes] = useCloudState(user, 'oneRepMaxes', { bench: 102, deadlift: 143, squat: 125 });
+    const [workoutHistory, setWorkoutHistory] = useCloudState(user, 'workoutHistory', []);
+    const [activeTab, setActiveTab] = useCloudState(user, 'activeTab', 'workout');
+    const [selectedDay, setSelectedDay] = useCloudState(user, 'selectedDay', 'monday');
+    const [isPeaking, setIsPeaking] = useCloudState(user, 'isPeaking', false);
+    const [peakingWeek, setPeakingWeek] = useCloudState(user, 'peakingWeek', 1);
+    const [lightMode, setLightMode] = useCloudState(user, 'lightMode', false);
+
+    const [split, setSplit] = useCloudState(user, 'customSplit', defaultSplit);
+    const [weekSplit, setWeekSplit] = React.useState(null);
+    const [showEditModal, setShowEditModal] = React.useState(false);
+    const [editDay, setEditDay] = React.useState("");
+    const [setInputs, setSetInputs] = React.useState({});
+    const allLifts = ['bench', 'deadlift', 'squat'];
+    const allDays = ['monday', 'tuesday', 'wednesday', 'friday', 'saturday'];
+    const emojiMap = { monday:"💪", tuesday:"🔥", wednesday:"🦵", friday:"💥", saturday:"⚡" };
+    const dayTitles = { monday:"Push (Bench Focus)", tuesday:"Pull (Deadlift & Back)", wednesday:"Legs (Quad Focus)", friday:"Upper (Incline & Bench)", saturday:"Lower (Heavy Deadlift)" };
+    const getPlanForDay = (day) => {
+        if (weekSplit && weekSplit[day] && Array.isArray(weekSplit[day]) && weekSplit[day].length > 0) return weekSplit[day];
+        return split[day] || [];
+    };
+    const handleEditClick = (day) => {
+        setEditDay(day);
+        setShowEditModal(true);
+    };
+
+    // --- Reset/Restore buttons ---
+    const resetWeekPlan = async () => {
+        setWeekSplit(null);
+        setShowEditModal(false);
+        if (user) {
+            const db = firebase.firestore();
+            const ref = db.collection('users').doc(user.uid);
+            await ref.update({ weekSplit: null });
+        }
+    };
+    const restoreDefaultSplit = async () => {
+        setSplit(defaultSplit);
+        if (user) {
+            const db = firebase.firestore();
+            const ref = db.collection('users').doc(user.uid);
+            await ref.update({ customSplit: defaultSplit });
+        }
+    };
+
+    // --- (rest of your logic, UI) ---
+    // ... (for brevity, please copy the full large UI render block from previous code; or tell me if you want the rest)
+
+    // For demo, just render reset/restore buttons
+    return (
+        <div className="p-8">
+            <h2 className="text-lg font-semibold mb-4 flex items-center text-white">
+                <span className="mr-2">📅</span>
+                Weekly Split
+                <div className="flex flex-row gap-2 ml-4">
+                    <button
+                        onClick={resetWeekPlan}
+                        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+                        title="Reset to Default"
+                    >Reset week</button>
+                    <button
+                        onClick={restoreDefaultSplit}
+                        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+                        title="Restore original split"
+                    >Restore original split</button>
+                </div>
+            </h2>
+            {<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker (Cloud)</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -495,179 +1083,28 @@ function WorkoutTracker() {
             setSplit(prev => ({...prev, [day]: newRoutine }));
         }
     };
-   import { getFirestore, doc, updateDoc } from "firebase/firestore";
+    // Reset week split to default
+    const resetWeekPlan = () => setWeekSplit(null);
 
-// Your defaultSplit definition (make sure this matches your app's default split)
-const defaultSplit = {
-    monday: [
-        { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
-        { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
-        { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
-        { name: "Lateral Raises", sets: "3x10-12", lift: null },
-        { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
-    ],
-    tuesday: [
-        { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
-        { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
-        { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
-        { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
-        { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
-        { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
-    ],
-    wednesday: [
-        { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
-        { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
-        { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
-        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-        { name: "Adductors", sets: "2x10-12", lift: null },
-        { name: "Abductors", sets: "2x10-12", lift: null },
-        { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
-    ],
-    friday: [
-        { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
-        { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
-        { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
-        { name: "Chest Supported Row", sets: "2x8-10", lift: null },
-        { name: "Lateral Raises", sets: "2x10-12", lift: null },
-        { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
-        { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
-    ],
-    saturday: [
-        { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
-        { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
-        { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
-        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-        { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
-    ],
-};
-
-// Place these functions inside your WorkoutTracker component
-const resetWeekPlan = async () => {
-    setWeekSplit(null);
-    setShowEditModal(false);
-    if (user) {
-        const db = getFirestore();
-        const ref = doc(db, "users", user.uid);
-        await updateDoc(ref, { weekSplit: null });
-    }
-};
-
-const restoreDefaultSplit = async () => {
-    setSplit(defaultSplit);
-    if (user) {
-        const db = getFirestore();
-        const ref = doc(db, "users", user.uid);
-        await updateDoc(ref, { customSplit: defaultSplit });
-    }
-};
-
-// Place this button group in your return statement where the weekly split is rendered (next to the Reset week button)
-<div className="flex flex-row gap-2 ml-4">
-    <button
-        onClick={resetWeekPlan}
-        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
-        title="Reset to Default"
-    >Reset week</button>
-    <button
-        onClick={restoreDefaultSplit}
-        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
-        title="Restore original split"
-    >Restore original split</button>
-</div>
-
-};
-
-  import { getFirestore, doc, updateDoc } from "firebase/firestore";
-
-// Your defaultSplit definition (make sure this matches your app's default split)
-const defaultSplit = {
-    monday: [
-        { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
-        { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
-        { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
-        { name: "Lateral Raises", sets: "3x10-12", lift: null },
-        { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
-    ],
-    tuesday: [
-        { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
-        { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
-        { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
-        { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
-        { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
-        { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
-    ],
-    wednesday: [
-        { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
-        { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
-        { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
-        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-        { name: "Adductors", sets: "2x10-12", lift: null },
-        { name: "Abductors", sets: "2x10-12", lift: null },
-        { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
-    ],
-    friday: [
-        { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
-        { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
-        { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
-        { name: "Chest Supported Row", sets: "2x8-10", lift: null },
-        { name: "Lateral Raises", sets: "2x10-12", lift: null },
-        { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
-        { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
-    ],
-    saturday: [
-        { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
-        { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
-        { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
-        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
-        { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
-    ],
-};
-
-// Place these functions inside your WorkoutTracker component
-const resetWeekPlan = async () => {
-    setWeekSplit(null);
-    setShowEditModal(false);
-    if (user) {
-        const db = getFirestore();
-        const ref = doc(db, "users", user.uid);
-        await updateDoc(ref, { weekSplit: null });
-    }
-};
-
-const restoreDefaultSplit = async () => {
-    setSplit(defaultSplit);
-    if (user) {
-        const db = getFirestore();
-        const ref = doc(db, "users", user.uid);
-        await updateDoc(ref, { customSplit: defaultSplit });
-    }
-};
-
-// Place this button group in your return statement where the weekly split is rendered (next to the Reset week button)
-<div className="flex flex-row gap-2 ml-4">
-    <button
-        onClick={resetWeekPlan}
-        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
-        title="Reset to Default"
-    >Reset week</button>
-    <button
-        onClick={restoreDefaultSplit}
-        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
-        title="Restore original split"
-    >Restore original split</button>
-</div>
-
-// Example placement in your Weekly Split block:
-/*
-<h2 className="text-lg font-semibold mb-4 flex items-center text-white">
-    <span className="mr-2">📅</span>
-    Weekly Split
-    <div className="flex flex-row gap-2 ml-4">
-        <button ...>Reset week</button>
-        <button ...>Restore original split</button>
-    </div>
-</h2>
-*/
+    const saveWorkout = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const dayPlan = getPlanForDay(selectedDay);
+        const exercisesData = {};
+        dayPlan.forEach(ex => {
+            const exerciseKey = `${selectedDay}-${ex.name}`;
+            exercisesData[exerciseKey] = {
+                name: ex.name,
+                lift: ex.lift || null,
+                sets: [1,2,3,4].map(setNum => setInputs[`${exerciseKey}-set${setNum}`] || { weight: '', reps: '', done: false })
+            };
+        });
+        setWorkoutHistory(prev => [...(prev || []), {
+            date: today,
+            day: selectedDay,
+            workout: dayTitles[selectedDay] || "",
+            exercises: exercisesData
+        }]);
+        setSetInputs({});
     };
 
     React.useEffect(() => {
@@ -1172,6 +1609,14 @@ const restoreDefaultSplit = async () => {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
+</script>
+</body>
+</html>/* ...rest of your UI... */}
         </div>
     );
 }
