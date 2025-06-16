@@ -224,12 +224,30 @@ function EditExerciseModal({ show, onClose, exercise, onSave, isNew, days, allLi
                     <select value={day} onChange={e => setDay(e.target.value)}>
                         {days.map(d => <option value={d} key={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
                     </select>
-                    <label>Name</label>
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Exercise name" maxLength={32} />
-                    <label>Sets/Reps (e.g. 3x8, 4x10@70%)</label>
-                    <input value={sets} onChange={e => setSets(e.target.value)} placeholder="Sets prescription" maxLength={32} />
-                    <label>1RM Link (optional)</label>
-                    <select value={lift || ""} onChange={e => setLift(e.target.value)}>
+                   <input
+  value={name}
+  onChange={e => setName(e.target.value)}
+  placeholder="Exercise name"
+  maxLength={32}
+  name="exerciseName"
+/>
+<input
+  value={sets}
+  onChange={e => setSets(e.target.value)}
+  placeholder="Sets prescription"
+  maxLength={32}
+  name="setsPrescrip"
+/>
+<select
+  value={day}
+  onChange={e => setDay(e.target.value)}
+  name="exerciseDay"
+>
+<select
+  value={lift || ""}
+  onChange={e => setLift(e.target.value)}
+  name="liftLink"
+>
                         <option value="">None</option>
                         {allLifts.map(l => <option value={l} key={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
                     </select>
