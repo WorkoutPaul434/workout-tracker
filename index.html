@@ -496,8 +496,25 @@ function WorkoutTracker() {
         }
     };
     // Reset week split to default
-    const resetWeekPlan = () => setWeekSplit(null);
+    const resetWeekPlan = async () => {
+    setWeekSplit(null);
+    setShowEditModal(false);
+    if (user) {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await ref.update({ weekSplit: null });
+    }
+};
 
+// Function to restore your main split to the original default split (does NOT touch this week's plan)
+const restoreDefaultSplit = async () => {
+    setSplit(defaultSplit);
+    if (user) {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await ref.update({ customSplit: defaultSplit });
+    }
+};
     const saveWorkout = () => {
         const today = new Date().toISOString().split('T')[0];
         const dayPlan = getPlanForDay(selectedDay);
