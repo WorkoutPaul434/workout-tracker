@@ -222,34 +222,33 @@ function EditExerciseModal({ show, onClose, exercise, onSave, isNew, days, allLi
                     }}>
                     <label>Day</label>
                     <select value={day} onChange={e => setDay(e.target.value)}>
-                        {days.map(d => <option value={d} key={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
+                        {days.map(d => (
+                            <option value={d} key={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
+                        ))}
                     </select>
-                   <input
-  value={name}
-  onChange={e => setName(e.target.value)}
-  placeholder="Exercise name"
-  maxLength={32}
-  name="exerciseName"
-/>
-<input
-  value={sets}
-  onChange={e => setSets(e.target.value)}
-  placeholder="Sets prescription"
-  maxLength={32}
-  name="setsPrescrip"
-/>
-<select
-  value={day}
-  onChange={e => setDay(e.target.value)}
-  name="exerciseDay"
->
-<select
-  value={lift || ""}
-  onChange={e => setLift(e.target.value)}
-  name="liftLink"
->
+                    <input
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Exercise name"
+                        maxLength={32}
+                        name="exerciseName"
+                    />
+                    <input
+                        value={sets}
+                        onChange={e => setSets(e.target.value)}
+                        placeholder="Sets prescription"
+                        maxLength={32}
+                        name="setsPrescrip"
+                    />
+                    <select
+                        value={lift || ""}
+                        onChange={e => setLift(e.target.value)}
+                        name="liftLink"
+                    >
                         <option value="">None</option>
-                        {allLifts.map(l => <option value={l} key={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
+                        {allLifts.map(l => (
+                            <option value={l} key={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
+                        ))}
                     </select>
                     {setOnlyForWeek &&
                         <div className="mb-2">
@@ -516,7 +515,7 @@ function WorkoutTracker() {
     // Reset week split to default
     const resetWeekPlan = async () => {
     setWeekSplit(null);
-    setShowEditModal(false);
+    setEditModalOpen(false);
     if (user) {
         const db = firebase.firestore();
         const ref = db.collection('users').doc(user.uid);
