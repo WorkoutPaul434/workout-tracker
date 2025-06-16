@@ -404,6 +404,42 @@ function WorkoutTracker() {
         if (!isRestDay(today)) setSelectedDay(today);
     }, []);
 
+    // Add these functions and button group to your main WorkoutTracker component
+
+// --- Place these two functions in your component ---
+const resetWeekPlan = async () => {
+    setWeekSplit(null);
+    setShowEditModal(false);
+    if (user) {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await ref.update({ weekSplit: null });
+    }
+};
+
+const restoreDefaultSplit = async () => {
+    setSplit(defaultSplit);
+    if (user) {
+        const db = firebase.firestore();
+        const ref = db.collection('users').doc(user.uid);
+        await ref.update({ customSplit: defaultSplit });
+    }
+};
+
+// --- Place this button group next to your "Weekly Split" header ---
+<div className="flex flex-row gap-2 ml-4">
+    <button
+        onClick={resetWeekPlan}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Reset to Default"
+    >Reset week</button>
+    <button
+        onClick={restoreDefaultSplit}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Restore original split"
+    >Restore original split</button>
+</div>
+
     // Peaking logic
     const getPeakingModifications = (exercise, week) => {
         if (!exercise.lift) return exercise.sets;
