@@ -12,7 +12,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
-        body { background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); min-height: 100vh; color: white; overflow-x: hidden;}
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { margin: 0; padding: 0; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%); min-height: 100vh; color: white; overflow-x: hidden;}
         .gradient-bg { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);}
         .glass-effect { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border: 1px solid rgba(220, 38, 38, 0.2);}
         .card-hover { transition: all 0.3s ease;}
@@ -21,6 +23,7 @@
         .pulse-animation { animation: pulse 2s infinite;}
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .mobile-safe { padding-bottom: env(safe-area-inset-bottom);}
+        input:focus, select:focus { outline: none; ring: 2px solid #dc2626;}
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none;}
         .scrollbar-hide::-webkit-scrollbar { display: none;}
         .light-mode { background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%) !important; color: #111 !important;}
@@ -32,113 +35,27 @@
             background: #18181b;
             color: #fff;
             border-radius: 1rem;
-            padding: 0;
-            min-width: 300px; max-width: 98vw; width: 370px;
+            padding: 2rem 1.5rem;
+            min-width: 320px;
+            max-width: 95vw;
             box-shadow: 0 0 40px #0008;
             z-index: 1001;
-            max-height: 94vh;
+            max-height: 90vh;
             overflow-y: auto;
         }
-        .edit-modal-header {
-            border-radius: 1rem 1rem 0 0;
-            padding: 1.2rem 1.5rem .5rem 1.5rem;
-            background: #212125;
-            border-bottom: 1.5px solid #333;
-        }
-        .edit-modal-title {
-            font-size: 1.22rem;
-            font-weight: 700;
-            letter-spacing: .01em;
-        }
-        .edit-modal-content {
-            padding: 1.2rem 1.5rem 1.3rem 1.5rem;
-        }
-        .edit-modal-footer {
-            border-top: 1.5px solid #333;
-            padding: 1.1rem 1.5rem;
-            border-radius: 0 0 1rem 1rem;
-            background: #212125;
-        }
-        .edit-modal input, .edit-modal select {
-            background: #23232b;
+        .edit-modal input, .edit-modal select, .edit-modal textarea {
+            background: #27272a;
             color: #fff;
             width: 100%;
             border-radius: 0.5rem;
             border: 1px solid #444;
-            padding: 0.57rem 0.75rem;
-            margin-bottom: 1.1rem;
-            font-size: 1rem;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 1rem;
         }
-        .edit-modal label { margin-bottom: 0.18rem; display: block; font-weight: 500; }
-        .edit-modal .row-actions { display:flex; gap:0.35em; }
-        .edit-modal .row-actions .icon-btn {
-            border:none; background: #23242a; color:#aaa;
-            border-radius: 0.5em; padding: 0.32em 0.42em;
-            display:inline-flex; align-items:center; justify-content:center;
-            font-size:1.15em; cursor:pointer; transition:.14s;
-        }
-        .edit-modal .row-actions .icon-btn:hover {
-            background:#35363e; color: #fff;
-        }
-        .edit-modal .row-actions .icon-btn.delete { background:#661d1d; color:#fff;}
-        .edit-modal .row-actions .icon-btn.delete:hover { background:#991b1b; color:#fff;}
-        .edit-modal .row-actions .icon-btn.up, .edit-modal .row-actions .icon-btn.down {
-            background:#1d3146; color:#78a1e6;
-        }
-        .edit-modal .row-actions .icon-btn.up:hover, .edit-modal .row-actions .icon-btn.down:hover {
-            background:#27466b; color:#fff;
-        }
-        .edit-modal .row-actions .icon-btn.pencil {
-            background:#23232a; color:#bbb;
-            border:1.5px solid #555;
-            border-radius:0.6em;
-            font-size:1.15em;
-        }
-        .edit-modal .row-actions .icon-btn.pencil:hover {
-            background:#333740; border-color:#dc2626; color:#fff;
-        }
-        .edit-ex-add-row {
-            display:flex; align-items:end; gap:0.43em; margin-bottom:1rem;
-        }
-        .edit-ex-add-row input, .edit-ex-add-row select {
-            margin-bottom:0; max-width:6.5em; min-width:3.5em; padding:.42em .7em; font-size:.96em;
-        }
-        .edit-ex-add-row input[name="name"] { flex:2 2 0%; min-width:6em; }
-        .edit-ex-add-row input[name="sets"] { flex:1 1 0%; }
-        .edit-ex-add-row select[name="lift"] { flex:1 1 0%; }
-        .edit-ex-add-row select[name="day"] { flex:1 1 0%; min-width:3.5em;}
-        .edit-ex-add-row .btn { margin-bottom:0; }
-        .edit-list {
-            margin:0; padding:0; list-style:none;
-        }
-        .edit-list li {
-            display:flex; align-items:center; justify-content:space-between;
-            font-size:1em; padding:.5em 0 .42em 0; border-bottom:1px solid #23232a;
-            margin-bottom:.2em;
-        }
-        .edit-list .ex-info {
-            display:flex; flex-direction:column; flex:1 1 0%; min-width:0;
-        }
-        .edit-list .ex-info span:first-child {
-            font-weight:500; font-size:1.04em; color:#fff; line-height:1.1;
-            text-overflow:ellipsis;overflow:hidden;white-space:nowrap; max-width:11em;
-        }
-        .edit-list .ex-info span:last-child {
-            font-size:.94em; color:#bbb; opacity:.8; margin-top:.1em; font-family:monospace;
-            text-overflow:ellipsis;overflow:hidden;white-space:nowrap; max-width:13em;
-        }
-        .edit-list .ex-lift-tag {
-            font-size:.8em; font-family:monospace;
-            background:#222b; color:#aaa; border-radius:5px; padding:0 .39em; margin-left:0.7em;
-        }
-        .edit-modal .footer-btn { border-radius:.5em; padding:.65em 1.3em; font-weight:600; }
-        .edit-modal .footer-btn.primary { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color:#fff;}
-        .edit-modal .footer-btn.secondary { background:#23232a; color:#eee;}
-        .edit-modal .footer-btn.secondary:hover { background:#35363e;}
-        .edit-modal .footer-btn.primary:hover { background: linear-gradient(135deg, #a41f1f 0%, #4e0f0f 100%);}
-        @media (max-width: 640px) {
-            .edit-modal { min-width:95vw; width:97vw; }
-        }
+        .edit-modal label { margin-top: 0.25rem; margin-bottom: 0.25rem; display: block; }
+        .edit-modal button { margin-right: 0.5rem; }
+        .edit-action-btn { cursor: pointer; opacity: 0.8; transition: opacity 0.18s;}
+        .edit-action-btn:hover { opacity: 1; }
         .pencil-btn {
             display:inline-flex; align-items:center; justify-content:center;
             width:2.2em; height:2.2em; background:#23272b;
@@ -150,6 +67,10 @@
         .pencil-btn:active, .pencil-btn:focus, .pencil-btn:hover {
             background:#333740; border-color:#dc2626; color:#fff;
         }
+        @media (max-width: 640px) {
+            .edit-modal { min-width:95vw; padding:1rem 0.2rem;}
+        }
+        /* Sticky workout button (mobile) */
         @media (max-width: 800px) {
             .sticky-complete-btn {
                 position:fixed; z-index:900; left:0; right:0; bottom:0;
@@ -162,23 +83,19 @@
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
-// (The entire code is too long for a single message. Please reply with "continue" and I'll send the rest immediately!)
-</script>
-</body>
-</html>
-// Firebase setup
+<script>
 const firebaseConfig = {
     apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
     authDomain: "workout-tracker-62e56.firebaseapp.com",
     projectId: "workout-tracker-62e56",
-    storageBucket: "workout-tracker-62e56.appspot.com",
+    storageBucket: "workout-tracker-62e56.firebasestorage.app",
     messagingSenderId: "195952292211",
     appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
 };
 firebase.initializeApp(firebaseConfig);
+</script>
+<script type="text/babel">
 
-// --- React helpers ---
 function useCloudState(user, key, initialValue) {
     const [state, setState] = React.useState(initialValue);
     const firstLoad = React.useRef(true);
@@ -206,70 +123,7 @@ function useCloudState(user, key, initialValue) {
     return [state, setState];
 }
 
-// --- SVG icon ---
-function PencilIcon({className}) {
-    return (
-        <svg className={className} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
-            viewBox="0 0 24 24">
-            <rect x="0" y="0" width="24" height="24" fill="none"/>
-            <path d="M16.862 3.487a2.2 2.2 0 0 1 3.11 3.109l-11.48 11.48-3.618.507.507-3.618 11.481-11.478z"/>
-        </svg>
-    );
-}
-
-// --- Utility: find stats for last week ---
-function getMonday(date) {
-    const d = new Date(date);
-    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6:1);
-    return new Date(d.setDate(diff));
-}
-function lastWeekStats(history, day, exName) {
-    if (!history || !history.length) return null;
-    const now = new Date();
-    const thisMonday = getMonday(now);
-    const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
-    const lastSunday = new Date(thisMonday); lastSunday.setDate(thisMonday.getDate() - 1);
-    let maxWeight = null, maxReps = null;
-    history.forEach(entry => {
-        const d = new Date(entry.date);
-        if (d < lastMonday || d > lastSunday) return;
-        if (entry.day === day && entry.exercises) {
-            Object.values(entry.exercises).forEach(e => {
-                if (e.name === exName && Array.isArray(e.sets)) {
-                    e.sets.forEach(set => {
-                        if (set.weight && (!maxWeight || set.weight > maxWeight)) maxWeight = set.weight;
-                        if (set.reps && (!maxReps || set.reps > maxReps)) maxReps = set.reps;
-                    });
-                }
-            });
-        }
-    });
-    if (maxWeight || maxReps) return { maxWeight, maxReps };
-    return null;
-}
-
-// --- Utility: replace percentages with weights ---
-function parseSetsWithWeights(sets, lift, oneRepMaxes) {
-    let parsed = sets;
-    const patterns = [ /(\d+-\d+)%/g, /(\d+)%/g ];
-    patterns.forEach(pattern => {
-        parsed = parsed.replace(pattern, (match, percentage) => {
-            if (!lift) return match;
-            if (percentage.includes('-')) {
-                const [min, max] = percentage.split('-').map(Number);
-                const minWeight = Math.round((oneRepMaxes[lift] * min / 100)*4)/4;
-                const maxWeight = Math.round((oneRepMaxes[lift] * max / 100)*4)/4;
-                return `${percentage}% (${minWeight}-${maxWeight}kg)`;
-            } else {
-                const weight = Math.round((oneRepMaxes[lift] * parseInt(percentage)/100)*4)/4;
-                return `${percentage}% (${weight}kg)`;
-            }
-        });
-    });
-    return parsed;
-}
-
-// --- Chart.js chart ---
+// Chart.js Chart
 function ProgressChart({ history, lift }) {
     const ref = React.useRef();
     React.useEffect(() => {
@@ -332,164 +186,124 @@ function ProgressChart({ history, lift }) {
     );
 }
 
-// --- Enhanced Edit Modal for Exercises ---
-function EditDayModal({ show, day, baseSplit, weekSplit, setBaseSplit, setWeekSplit, onClose, allLifts, allDays }) {
-    const [addName, setAddName] = React.useState("");
-    const [addSets, setAddSets] = React.useState("");
-    const [addLift, setAddLift] = React.useState("");
-    const [addForWeek, setAddForWeek] = React.useState(false);
-    const [editIdx, setEditIdx] = React.useState(-1);
-    const [editName, setEditName] = React.useState("");
-    const [editSets, setEditSets] = React.useState("");
-    const [editLift, setEditLift] = React.useState("");
-    const [editForWeek, setEditForWeek] = React.useState(false);
-
-    const isWeek = weekSplit && weekSplit[day];
-    const routine = (isWeek ? weekSplit[day] : baseSplit[day]) || [];
-
-    function handleAddExercise(e) {
-        e.preventDefault();
-        if (!addName.trim() || !addSets.trim()) return;
-        const ex = { name: addName.trim(), sets: addSets.trim(), lift: addLift || null, day };
-        if (addForWeek) {
-            setWeekSplit(prev => ({
-                ...prev,
-                [day]: [...(prev?.[day] || []), ex]
-            }));
-        } else {
-            setBaseSplit(prev => ({
-                ...prev,
-                [day]: [...(prev?.[day] || []), ex]
-            }));
-        }
-        setAddName(""); setAddSets(""); setAddLift("");
-    }
-    function startEdit(idx) {
-        setEditIdx(idx);
-        setEditName(routine[idx].name);
-        setEditSets(routine[idx].sets);
-        setEditLift(routine[idx].lift || "");
-        setEditForWeek(!!isWeek);
-    }
-    function handleEditExercise(idx) {
-        if (!editName.trim() || !editSets.trim()) return;
-        const ex = { name: editName.trim(), sets: editSets.trim(), lift: editLift || null, day };
-        if (editForWeek) {
-            setWeekSplit(prev => ({
-                ...prev,
-                [day]: prev[day].map((o,i)=>i===idx?ex:o)
-            }));
-        } else {
-            setBaseSplit(prev => ({
-                ...prev,
-                [day]: prev[day].map((o,i)=>i===idx?ex:o)
-            }));
-        }
-        setEditIdx(-1);
-    }
-    function handleDelete(idx) {
-        if (isWeek) {
-            setWeekSplit(prev => ({
-                ...prev,
-                [day]: prev[day].filter((_,i)=>i!==idx)
-            }));
-        } else {
-            setBaseSplit(prev => ({
-                ...prev,
-                [day]: prev[day].filter((_,i)=>i!==idx)
-            }));
-        }
-    }
-    function move(idx, dir) {
-        if ((dir < 0 && idx === 0) || (dir > 0 && idx === routine.length-1)) return;
-        const arr = [...routine];
-        [arr[idx], arr[idx+dir]] = [arr[idx+dir], arr[idx]];
-        if (isWeek) setWeekSplit(prev => ({...prev, [day]: arr}));
-        else setBaseSplit(prev => ({...prev, [day]: arr}));
-    }
-
-    if (!show) return null;
+// Pencil SVG
+function PencilIcon({className}) {
     return (
-    <div className="edit-overlay">
-        <form
-            className="edit-modal"
-            onSubmit={handleAddExercise}
-            onKeyDown={e => { if (e.key === "Enter" && document.activeElement.tagName !== "TEXTAREA") e.preventDefault(); }}>
-            <div className="edit-modal-header">
-                <div className="edit-modal-title flex items-center justify-between">
-                    Edit {day.charAt(0).toUpperCase()+day.slice(1)} Routine
-                    <button type="button" className="text-gray-400 hover:text-red-400 font-bold text-xl" onClick={onClose} aria-label="Close">&times;</button>
-                </div>
-            </div>
-            <div className="edit-modal-content">
-                <div className="edit-ex-add-row mb-5">
-                    <input name="name" value={addName} onChange={e=>setAddName(e.target.value)} placeholder="Exercise name" />
-                    <input name="sets" value={addSets} onChange={e=>setAddSets(e.target.value)} placeholder="Sets/reps" />
-                    <select name="lift" value={addLift} onChange={e=>setAddLift(e.target.value)}>
-                        <option value="">-1RM-</option>
-                        {allLifts.map(l=><option key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</option>)}
-                    </select>
-                    <label className="flex items-center mb-0" title="Only for this week?">
-                        <input type="checkbox" className="mr-1" checked={addForWeek} onChange={e=>setAddForWeek(e.target.checked)} />
-                        <span className="text-xs text-gray-300">Week</span>
-                    </label>
-                    <button className="btn footer-btn primary" type="submit" style={{padding:"0.5em 1.1em"}}>Add</button>
-                </div>
-                <ul className="edit-list">
-                    {routine.map((ex, idx)=>(
-                        <li key={idx}>
-                            {editIdx === idx ? (
-                                <form
-                                    className="flex flex-row items-end gap-2 flex-1"
-                                    onSubmit={e=>{e.preventDefault();handleEditExercise(idx);}}
-                                    style={{minWidth:0}}
-                                >
-                                    <input value={editName} onChange={e=>setEditName(e.target.value)} style={{maxWidth:"7em"}} />
-                                    <input value={editSets} onChange={e=>setEditSets(e.target.value)} style={{maxWidth:"6em"}} />
-                                    <select value={editLift} onChange={e=>setEditLift(e.target.value)}>
-                                        <option value="">-1RM-</option>
-                                        {allLifts.map(l=><option key={l} value={l}>{l.charAt(0).toUpperCase()+l.slice(1)}</option>)}
-                                    </select>
-                                    <label className="flex items-center mb-0" title="Only for this week?">
-                                        <input type="checkbox" className="mr-1" checked={editForWeek} onChange={e=>setEditForWeek(e.target.checked)} />
-                                        <span className="text-xs text-gray-300">Week</span>
-                                    </label>
-                                    <button type="submit" className="btn footer-btn primary" style={{padding:"0.4em 1em"}}>Save</button>
-                                    <button type="button" className="btn footer-btn secondary" style={{padding:"0.4em 1em"}} onClick={()=>setEditIdx(-1)}>Cancel</button>
-                                </form>
-                            ) : (
-                                <>
-                                <div className="ex-info">
-                                    <span>{ex.name}
-                                        {ex.lift && <span className="ex-lift-tag">{ex.lift.toUpperCase()}</span>}
-                                    </span>
-                                    <span>{ex.sets}</span>
-                                </div>
-                                <div className="row-actions ml-2 flex-nowrap">
-                                    <button type="button" className="icon-btn pencil" title="Edit"
-                                        onClick={()=>startEdit(idx)}><PencilIcon /></button>
-                                    <button type="button" className="icon-btn up" title="Move up"
-                                        onClick={()=>move(idx,-1)}>&uarr;</button>
-                                    <button type="button" className="icon-btn down" title="Move down"
-                                        onClick={()=>move(idx,1)}>&darr;</button>
-                                    <button type="button" className="icon-btn delete" title="Delete"
-                                        onClick={()=>handleDelete(idx)}>&#128465;</button>
-                                </div>
-                                </>
-                            )}
-                        </li>
-                    ))}
-                    {routine.length === 0 && <li className="text-sm text-gray-400 italic py-2">No exercises for this day.</li>}
-                </ul>
-            </div>
-            <div className="edit-modal-footer flex flex-row-reverse gap-2">
-                <button type="button" className="footer-btn secondary" onClick={onClose}>Done</button>
-            </div>
-        </form>
-    </div>
+        <svg className={className} width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
+            viewBox="0 0 24 24">
+            <rect x="0" y="0" width="24" height="24" fill="none"/>
+            <path d="M16.862 3.487a2.2 2.2 0 0 1 3.11 3.109l-11.48 11.48-3.618.507.507-3.618 11.481-11.478z"/>
+        </svg>
     );
 }
-</script>
+
+// Modal for editing exercises
+function EditExerciseModal({ show, onClose, exercise, onSave, isNew, days, allLifts, onlyForWeek, setOnlyForWeek }) {
+    const [name, setName] = React.useState(exercise?.name || "");
+    const [sets, setSets] = React.useState(exercise?.sets || "");
+    const [lift, setLift] = React.useState(exercise?.lift || "");
+    const [day, setDay] = React.useState(exercise?.day || days[0] || "");
+    React.useEffect(() => {
+        setName(exercise?.name || "");
+        setSets(exercise?.sets || "");
+        setLift(exercise?.lift || "");
+        setDay(exercise?.day || days[0] || "");
+    }, [exercise, days]);
+    if (!show) return null;
+    return (
+        <div className="edit-overlay">
+            <div className="edit-modal">
+                <h3 className="text-lg font-semibold mb-2">{isNew ? "Add New Exercise" : "Edit Exercise"}</h3>
+                <form
+                    onSubmit={e => {
+                        e.preventDefault();
+                        if (!name.trim()) return;
+                        onSave({ ...exercise, name: name.trim(), sets: sets.trim(), lift: lift || null, day });
+                    }}>
+                    <label>Day</label>
+                    <select value={day} onChange={e => setDay(e.target.value)}>
+                        {days.map(d => <option value={d} key={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
+                    </select>
+                    <label>Name</label>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Exercise name" maxLength={32} />
+                    <label>Sets/Reps (e.g. 3x8, 4x10@70%)</label>
+                    <input value={sets} onChange={e => setSets(e.target.value)} placeholder="Sets prescription" maxLength={32} />
+                    <label>1RM Link (optional)</label>
+                    <select value={lift || ""} onChange={e => setLift(e.target.value)}>
+                        <option value="">None</option>
+                        {allLifts.map(l => <option value={l} key={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
+                    </select>
+                    {setOnlyForWeek &&
+                        <div className="mb-2">
+                            <label className="inline-flex items-center space-x-2">
+                                <input type="checkbox" checked={onlyForWeek} onChange={e => setOnlyForWeek(e.target.checked)} />
+                                <span>Only for this week</span>
+                            </label>
+                        </div>
+                    }
+                    <div className="flex justify-end">
+                        <button type="button" onClick={onClose} className="bg-gray-700 px-3 py-1 rounded mr-2">Cancel</button>
+                        <button type="submit" className="gradient-bg px-3 py-1 rounded text-white">{isNew ? "Add" : "Save"}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6:1);
+    return new Date(d.setDate(diff));
+}
+
+// Find max weight and reps for an exercise in the previous week in workout history
+function lastWeekStats(history, day, exName) {
+    if (!history || !history.length) return null;
+    const now = new Date();
+    const thisMonday = getMonday(now);
+    const lastMonday = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+    const lastSunday = new Date(thisMonday); lastSunday.setDate(thisMonday.getDate() - 1);
+    let maxWeight = null, maxReps = null;
+    history.forEach(entry => {
+        const d = new Date(entry.date);
+        if (d < lastMonday || d > lastSunday) return;
+        if (entry.day === day && entry.exercises) {
+            Object.values(entry.exercises).forEach(e => {
+                if (e.name === exName && Array.isArray(e.sets)) {
+                    e.sets.forEach(set => {
+                        if (set.weight && (!maxWeight || set.weight > maxWeight)) maxWeight = set.weight;
+                        if (set.reps && (!maxReps || set.reps > maxReps)) maxReps = set.reps;
+                    });
+                }
+            });
+        }
+    });
+    if (maxWeight || maxReps) return { maxWeight, maxReps };
+    return null;
+}
+
+function parseSetsWithWeights(sets, lift, oneRepMaxes) {
+    // always show percentages and calculated weights together
+    let parsed = sets;
+    const patterns = [ /(\d+-\d+)%/g, /(\d+)%/g ];
+    patterns.forEach(pattern => {
+        parsed = parsed.replace(pattern, (match, percentage) => {
+            if (!lift) return match;
+            if (percentage.includes('-')) {
+                const [min, max] = percentage.split('-').map(Number);
+                const minWeight = Math.round((oneRepMaxes[lift] * min / 100)*4)/4;
+                const maxWeight = Math.round((oneRepMaxes[lift] * max / 100)*4)/4;
+                return `${percentage}% (${minWeight}-${maxWeight}kg)`;
+            } else {
+                const weight = Math.round((oneRepMaxes[lift] * parseInt(percentage)/100)*4)/4;
+                return `${percentage}% (${weight}kg)`;
+            }
+        });
+    });
+    return parsed;
+}
+
 function WorkoutTracker() {
     const [user, setUser] = React.useState(null);
     const [authLoading, setAuthLoading] = React.useState(true);
@@ -498,6 +312,7 @@ function WorkoutTracker() {
         return () => unsub();
     }, []);
 
+    // --- Cloud states ---
     const [oneRepMaxes, setOneRepMaxes] = useCloudState(user, 'oneRepMaxes', { bench: 102, deadlift: 143, squat: 125 });
     const [workoutHistory, setWorkoutHistory] = useCloudState(user, 'workoutHistory', []);
     const [activeTab, setActiveTab] = useCloudState(user, 'activeTab', 'workout');
@@ -506,6 +321,7 @@ function WorkoutTracker() {
     const [peakingWeek, setPeakingWeek] = useCloudState(user, 'peakingWeek', 1);
     const [lightMode, setLightMode] = useCloudState(user, 'lightMode', false);
 
+    // Split is now customizable and cloud-synced!
     const defaultSplit = {
         monday: [
             { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
@@ -550,25 +366,24 @@ function WorkoutTracker() {
     };
     const [split, setSplit] = useCloudState(user, 'customSplit', defaultSplit);
     const [weekSplit, setWeekSplit] = React.useState(null);
-    const [showEditModal, setShowEditModal] = React.useState(false);
-    const [editDay, setEditDay] = React.useState("");
+
+    const getPlanForDay = (day) => {
+        if (weekSplit && weekSplit[day]) return weekSplit[day];
+        return split[day] || [];
+    };
+
     const [setInputs, setSetInputs] = React.useState({});
+    const [editMode, setEditMode] = React.useState(false);
+    const [editDay, setEditDay] = React.useState("");
+    const [editExercise, setEditExercise] = React.useState(null);
+    const [editModalOpen, setEditModalOpen] = React.useState(false);
+    const [editIsNew, setEditIsNew] = React.useState(false);
+    const [editOnlyForWeek, setEditOnlyForWeek] = React.useState(false);
+
     const allLifts = ['bench', 'deadlift', 'squat'];
     const allDays = ['monday', 'tuesday', 'wednesday', 'friday', 'saturday'];
     const emojiMap = { monday:"💪", tuesday:"🔥", wednesday:"🦵", friday:"💥", saturday:"⚡" };
     const dayTitles = { monday:"Push (Bench Focus)", tuesday:"Pull (Deadlift & Back)", wednesday:"Legs (Quad Focus)", friday:"Upper (Incline & Bench)", saturday:"Lower (Heavy Deadlift)" };
-    const getPlanForDay = (day) => {
-        if (weekSplit && weekSplit[day] && Array.isArray(weekSplit[day]) && weekSplit[day].length > 0) return weekSplit[day];
-        return split[day] || [];
-    };
-    const handleEditClick = (day) => {
-        setEditDay(day);
-        setShowEditModal(true);
-    };
-    const resetWeekPlan = () => {
-        setWeekSplit(null);
-        setShowEditModal(false);
-    };
 
     const calculateWeight = (lift, percentage) => {
         const oneRM = oneRepMaxes && oneRepMaxes[lift] ? oneRepMaxes[lift] : 0;
@@ -577,6 +392,7 @@ function WorkoutTracker() {
     const parseExerciseWithWeights = (exercise) => {
         return parseSetsWithWeights(exercise.sets, exercise.lift, oneRepMaxes);
     };
+
     const getCurrentDayName = () => {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         return days[new Date().getDay()];
@@ -588,6 +404,7 @@ function WorkoutTracker() {
         if (!isRestDay(today)) setSelectedDay(today);
     }, []);
 
+    // Peaking logic
     const getPeakingModifications = (exercise, week) => {
         if (!exercise.lift) return exercise.sets;
         let sets = exercise.sets;
@@ -612,8 +429,74 @@ function WorkoutTracker() {
             default:
                 sets = exercise.sets;
         }
+        // Always show both percentage and weight
         return parseSetsWithWeights(sets, exercise.lift, oneRepMaxes);
     };
+
+    const handleEditClick = (day) => {
+        setEditDay(day);
+        setEditMode(true);
+    };
+    const handleEditExercise = (ex, day) => {
+        setEditExercise({ ...ex, day });
+        setEditIsNew(false);
+        setEditModalOpen(true);
+        setEditOnlyForWeek(false);
+    };
+    const handleAddExercise = (day) => {
+        setEditExercise({ name: "", sets: "", lift: "", day });
+        setEditIsNew(true);
+        setEditModalOpen(true);
+        setEditOnlyForWeek(false);
+    };
+    const handleDeleteExercise = (idx, day, forWeek) => {
+        if (forWeek) {
+            setWeekSplit(prev => ({
+                ...prev,
+                [day]: (prev?.[day] || []).filter((_,i) => i !== idx)
+            }));
+        } else {
+            setSplit(prev => ({
+                ...prev,
+                [day]: (prev?.[day] || []).filter((_,i) => i !== idx)
+            }));
+        }
+    };
+    const handleSaveExercise = (updatedEx) => {
+        const targetDay = updatedEx.day;
+        if (editOnlyForWeek) {
+            setWeekSplit(prev => ({
+                ...prev,
+                [targetDay]: [
+                    ...(prev?.[targetDay] || []).filter(e=>e.name!==editExercise.name),
+                    updatedEx
+                ]
+            }));
+        } else {
+            setSplit(prev => ({
+                ...prev,
+                [targetDay]: [
+                    ...(prev?.[targetDay] || []).filter(e=>e.name!==editExercise.name),
+                    updatedEx
+                ]
+            }));
+        }
+        setEditModalOpen(false);
+        setEditExercise(null);
+    };
+    const handleEditOrder = (day, idx, dir, forWeek) => {
+        const routine = forWeek ? (weekSplit?.[day] || []) : (split?.[day] || []);
+        if ((dir === -1 && idx === 0) || (dir === 1 && idx === routine.length-1)) return;
+        const newRoutine = [...routine];
+        [newRoutine[idx], newRoutine[idx+dir]] = [newRoutine[idx+dir], newRoutine[idx]];
+        if (forWeek) {
+            setWeekSplit(prev => ({...prev, [day]: newRoutine }));
+        } else {
+            setSplit(prev => ({...prev, [day]: newRoutine }));
+        }
+    };
+    // Reset week split to default
+    const resetWeekPlan = () => setWeekSplit(null);
 
     const saveWorkout = () => {
         const today = new Date().toISOString().split('T')[0];
@@ -654,15 +537,8 @@ function WorkoutTracker() {
         );
     }
 
-    // UI Rendering (see previous chunk for the full UI)
-    // ... copy the full UI rendering block from the previous large message without omitting any logic ...
-    // The return(...) block and ReactDOM.render call should be pasted here.
-
-}
-
-// --- Mount the App ---
-ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
-return (
+    // --- Main UI ---
+    return (
         <div className={`min-h-screen ${lightMode ? 'light-mode' : 'bg-gray-900'} mobile-safe`}>
             {/* Header and nav */}
             <div className="sticky top-0 z-50 glass-effect border-b border-red-600/30">
@@ -837,7 +713,7 @@ return (
                                                         <span
                                                             className="pencil-btn"
                                                             title="Edit exercise"
-                                                            onClick={() => { handleEditClick(selectedDay); }}
+                                                            onClick={() => { handleEditExercise(exercise, selectedDay); setEditOnlyForWeek(false); }}
                                                         ><PencilIcon /></span>
                                                     </div>
                                                     {exercise.lift && (
@@ -1082,17 +958,69 @@ return (
                 )}
             </div>
             {/* Edit Modal */}
-            <EditDayModal
-                show={showEditModal}
-                day={editDay}
-                baseSplit={split}
-                weekSplit={weekSplit}
-                setBaseSplit={setSplit}
-                setWeekSplit={setWeekSplit}
-                onClose={()=>setShowEditModal(false)}
+            <EditExerciseModal
+                show={editModalOpen}
+                onClose={() => { setEditModalOpen(false); setEditExercise(null); }}
+                exercise={editExercise}
+                onSave={handleSaveExercise}
+                isNew={editIsNew}
+                days={allDays}
                 allLifts={allLifts}
-                allDays={allDays}
+                onlyForWeek={editOnlyForWeek}
+                setOnlyForWeek={setEditOnlyForWeek}
             />
+            {/* Edit Day Modal */}
+            {editMode && (
+                <div className="edit-overlay">
+                    <div className="edit-modal" style={{minWidth: 380}}>
+                        <h3 className="font-semibold text-lg mb-2">Edit {editDay.charAt(0).toUpperCase()+editDay.slice(1)} Routine</h3>
+                        <div className="mb-4">
+                            <button className="bg-green-700 text-white px-3 py-1 rounded mr-2"
+                                onClick={() => { handleAddExercise(editDay); setEditIsNew(true); setEditOnlyForWeek(false); }}>Add Exercise</button>
+                            <button className="bg-blue-700 text-white px-3 py-1 rounded"
+                                onClick={() => { handleAddExercise(editDay); setEditIsNew(true); setEditOnlyForWeek(true); }}>Add only for this week</button>
+                        </div>
+                        <ul>
+                        {(weekSplit?.[editDay] || split?.[editDay] || []).map((ex, idx) => (
+                            <li key={idx} className="flex items-center mb-2 space-x-2">
+                                <span className="font-mono text-sm">{ex.name}</span>
+                                <span className="text-xs text-gray-400">{ex.sets}</span>
+                                <button title="Edit"
+                                    className="pencil-btn"
+                                    onClick={() => { handleEditExercise(ex, editDay); setEditOnlyForWeek(false); }}>
+                                    <PencilIcon />
+                                </button>
+                                <button title="Edit only for this week"
+                                    className="pencil-btn"
+                                    onClick={() => { handleEditExercise(ex, editDay); setEditOnlyForWeek(true); }}>
+                                    <PencilIcon />
+                                    <span className="ml-1 text-xs">🗓️</span>
+                                </button>
+                                <button title="Move up"
+                                    className="edit-action-btn"
+                                    onClick={() => handleEditOrder(editDay, idx, -1, !!weekSplit?.[editDay])}>
+                                    ⬆️
+                                </button>
+                                <button title="Move down"
+                                    className="edit-action-btn"
+                                    onClick={() => handleEditOrder(editDay, idx, 1, !!weekSplit?.[editDay])}>
+                                    ⬇️
+                                </button>
+                                <button title="Delete"
+                                    className="edit-action-btn text-red-300"
+                                    onClick={() => handleDeleteExercise(idx, editDay, !!weekSplit?.[editDay])}>
+                                    🗑️
+                                </button>
+                            </li>
+                        ))}
+                        </ul>
+                        <div className="flex justify-end mt-4">
+                            <button onClick={()=>setEditMode(false)}
+                                className="bg-gray-700 px-3 py-1 rounded">Done</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
