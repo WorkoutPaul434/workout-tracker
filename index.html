@@ -496,7 +496,20 @@ function WorkoutTracker() {
         }
     };
     // Reset week split to default
-    const resetWeekPlan = () => setWeekSplit(null);
+   import { getFirestore, doc, updateDoc /*, deleteField*/ } from "firebase/firestore";
+
+// Place this function inside your WorkoutTracker component, replacing your old resetWeekPlan
+const resetWeekPlan = async () => {
+    setWeekSplit(null);
+    setShowEditModal(false);
+    if (user) {
+        const db = getFirestore();
+        const ref = doc(db, "users", user.uid);
+        await updateDoc(ref, { weekSplit: null });
+        // If you want to remove the field entirely instead of setting to null, use:
+        // await updateDoc(ref, { weekSplit: deleteField() });
+    }
+};
 
     const saveWorkout = () => {
         const today = new Date().toISOString().split('T')[0];
