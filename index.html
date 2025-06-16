@@ -1107,7 +1107,7 @@ const progressionData = progressionPlan.find(w => w.week === progressionWeek);
     
 }
 
-ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
+ReactDOM.createRoot(document.getElementById('root')).render(<WorkoutTracker />);
 </script>
 </body>
 </html>
