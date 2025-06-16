@@ -725,65 +725,6 @@ function WorkoutTracker() {
                                         </h2>
                                     </div>
                                     <!-- Add this inside your <body> tag in index.html -->
-
-<h2>🔁 Progression Guidelines (4 Weeks)</h2>
-<div id="week-plan">
-  <p>Current Week: <span id="current-week">1</span> / 4</p>
-  <div id="plan-details"></div>
-  <button onclick="prevWeek()">Previous Week</button>
-  <button onclick="nextWeek()">Next Week</button>
-  <button onclick="resetWeek()">Reset</button>
-</div>
-
-<script>
-const plans = [
-  {
-    week: 1,
-    text: "Top singles @ ~85%, backoff @ 75%, solid baseline"
-  },
-  {
-    week: 2,
-    text: "Top singles @ ~87%, backoff @ 77%, slightly increase accessory effort"
-  },
-  {
-    week: 3,
-    text: "Top singles @ ~88–90%, backoff @ 80%, taper a couple sets to manage fatigue"
-  },
-  {
-    week: 4,
-    text: "Top singles @ ~90–92%, backoff @ 82–83%, push hard then transition or deload"
-  }
-];
-
-let currentWeek = 1;
-
-function displayPlan() {
-  document.getElementById("current-week").textContent = currentWeek;
-  document.getElementById("plan-details").textContent = plans[currentWeek - 1].text;
-}
-
-function nextWeek() {
-  if (currentWeek < 4) {
-    currentWeek++;
-    displayPlan();
-  }
-}
-
-function prevWeek() {
-  if (currentWeek > 1) {
-    currentWeek--;
-    displayPlan();
-  }
-}
-
-function resetWeek() {
-  currentWeek = 1;
-  displayPlan();
-}
-
-// Initialize display
-displayPlan();
-</script>
                                     {/* Desktop only - Complete Workout button */}
                                     <button
                                         onClick={saveWorkout}
