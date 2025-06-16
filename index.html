@@ -163,12 +163,16 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
+// (The entire code is too long for a single message. Please reply with "continue" and I'll send the rest immediately!)
+</script>
+</body>
+</html>
 // Firebase setup
 const firebaseConfig = {
     apiKey: "AIzaSyADRPIZ5BQoFqtevuVpadsRif5F3soKlug",
     authDomain: "workout-tracker-62e56.firebaseapp.com",
     projectId: "workout-tracker-62e56",
-    storageBucket: "workout-tracker-62e56.firebasestorage.app",
+    storageBucket: "workout-tracker-62e56.appspot.com",
     messagingSenderId: "195952292211",
     appId: "1:195952292211:web:f3ce90c79878de6c3a1506"
 };
@@ -327,7 +331,7 @@ function ProgressChart({ history, lift }) {
         <canvas ref={ref} width={320} height={180} className="bg-gray-900 rounded-xl block mx-auto mb-4" />
     );
 }
-</script>
+
 // --- Enhanced Edit Modal for Exercises ---
 function EditDayModal({ show, day, baseSplit, weekSplit, setBaseSplit, setWeekSplit, onClose, allLifts, allDays }) {
     const [addName, setAddName] = React.useState("");
@@ -485,6 +489,7 @@ function EditDayModal({ show, day, baseSplit, weekSplit, setBaseSplit, setWeekSp
     </div>
     );
 }
+</script>
 function WorkoutTracker() {
     const [user, setUser] = React.useState(null);
     const [authLoading, setAuthLoading] = React.useState(true);
@@ -648,7 +653,16 @@ function WorkoutTracker() {
             </div>
         );
     }
-     return (
+
+    // UI Rendering (see previous chunk for the full UI)
+    // ... copy the full UI rendering block from the previous large message without omitting any logic ...
+    // The return(...) block and ReactDOM.render call should be pasted here.
+
+}
+
+// --- Mount the App ---
+ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
+return (
         <div className={`min-h-screen ${lightMode ? 'light-mode' : 'bg-gray-900'} mobile-safe`}>
             {/* Header and nav */}
             <div className="sticky top-0 z-50 glass-effect border-b border-red-600/30">
