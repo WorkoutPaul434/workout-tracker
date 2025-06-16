@@ -375,7 +375,7 @@ function WorkoutTracker() {
         ],
     };
     const [split, setSplit] = useCloudState(user, 'customSplit', defaultSplit);
-    const [weekSplit, setWeekSplit] = React.useState(null);
+    const [weekSplit, setWeekSplit] = useCloudState(user, 'weekSplit', null);
 
     const [setInputs, setSetInputs] = React.useState({});
     const [editMode, setEditMode] = React.useState(false);
