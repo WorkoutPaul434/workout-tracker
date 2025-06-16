@@ -495,10 +495,53 @@ function WorkoutTracker() {
             setSplit(prev => ({...prev, [day]: newRoutine }));
         }
     };
-    // Reset week split to default
-   import { getFirestore, doc, updateDoc /*, deleteField*/ } from "firebase/firestore";
+   import { getFirestore, doc, updateDoc } from "firebase/firestore";
 
-// Place this function inside your WorkoutTracker component, replacing your old resetWeekPlan
+// Your defaultSplit definition (make sure this matches your app's default split)
+const defaultSplit = {
+    monday: [
+        { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
+        { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
+        { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
+        { name: "Lateral Raises", sets: "3x10-12", lift: null },
+        { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
+    ],
+    tuesday: [
+        { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
+        { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
+        { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
+        { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
+        { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
+        { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
+    ],
+    wednesday: [
+        { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
+        { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
+        { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
+        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+        { name: "Adductors", sets: "2x10-12", lift: null },
+        { name: "Abductors", sets: "2x10-12", lift: null },
+        { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
+    ],
+    friday: [
+        { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
+        { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
+        { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
+        { name: "Chest Supported Row", sets: "2x8-10", lift: null },
+        { name: "Lateral Raises", sets: "2x10-12", lift: null },
+        { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
+        { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
+    ],
+    saturday: [
+        { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
+        { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
+        { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
+        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+        { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
+    ],
+};
+
+// Place these functions inside your WorkoutTracker component
 const resetWeekPlan = async () => {
     setWeekSplit(null);
     setShowEditModal(false);
@@ -506,30 +549,125 @@ const resetWeekPlan = async () => {
         const db = getFirestore();
         const ref = doc(db, "users", user.uid);
         await updateDoc(ref, { weekSplit: null });
-        // If you want to remove the field entirely instead of setting to null, use:
-        // await updateDoc(ref, { weekSplit: deleteField() });
     }
 };
 
-    const saveWorkout = () => {
-        const today = new Date().toISOString().split('T')[0];
-        const dayPlan = getPlanForDay(selectedDay);
-        const exercisesData = {};
-        dayPlan.forEach(ex => {
-            const exerciseKey = `${selectedDay}-${ex.name}`;
-            exercisesData[exerciseKey] = {
-                name: ex.name,
-                lift: ex.lift || null,
-                sets: [1,2,3,4].map(setNum => setInputs[`${exerciseKey}-set${setNum}`] || { weight: '', reps: '', done: false })
-            };
-        });
-        setWorkoutHistory(prev => [...(prev || []), {
-            date: today,
-            day: selectedDay,
-            workout: dayTitles[selectedDay] || "",
-            exercises: exercisesData
-        }]);
-        setSetInputs({});
+const restoreDefaultSplit = async () => {
+    setSplit(defaultSplit);
+    if (user) {
+        const db = getFirestore();
+        const ref = doc(db, "users", user.uid);
+        await updateDoc(ref, { customSplit: defaultSplit });
+    }
+};
+
+// Place this button group in your return statement where the weekly split is rendered (next to the Reset week button)
+<div className="flex flex-row gap-2 ml-4">
+    <button
+        onClick={resetWeekPlan}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Reset to Default"
+    >Reset week</button>
+    <button
+        onClick={restoreDefaultSplit}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Restore original split"
+    >Restore original split</button>
+</div>
+
+};
+
+  import { getFirestore, doc, updateDoc } from "firebase/firestore";
+
+// Your defaultSplit definition (make sure this matches your app's default split)
+const defaultSplit = {
+    monday: [
+        { name: "Barbell Bench Press", sets: "1 top single @ 85-90%, then 3x5-8 @ 75-80%", lift: "bench" },
+        { name: "Pec Fly (Machine or DB)", sets: "2x8-10", lift: null },
+        { name: "Seated DB Shoulder Press", sets: "2x6-8", lift: null },
+        { name: "Lateral Raises", sets: "3x10-12", lift: null },
+        { name: "Triceps Pushdowns", sets: "2x8-10", lift: null }
+    ],
+    tuesday: [
+        { name: "Speed Deadlifts", sets: "4x2 @ 65-70%", lift: "deadlift" },
+        { name: "Weighted Pull-Ups", sets: "3x6-8", lift: null },
+        { name: "Chest-Supported T-Bar Row", sets: "2x6-8", lift: null },
+        { name: "Narrow Cable Row", sets: "2x8-10", lift: null },
+        { name: "Incline Cable Curls", sets: "2x8-10", lift: null },
+        { name: "Cable Hammer Curls", sets: "1x8-10", lift: null }
+    ],
+    wednesday: [
+        { name: "Back Squat", sets: "1 top single @ 85-88%, then 3x5-6 @ 80-85%", lift: "squat" },
+        { name: "Lying Leg Curl", sets: "3x8-10", lift: null },
+        { name: "Romanian Deadlift (RDL)", sets: "3x6-8", lift: null },
+        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+        { name: "Adductors", sets: "2x10-12", lift: null },
+        { name: "Abductors", sets: "2x10-12", lift: null },
+        { name: "Leg Extensions (optional)", sets: "2x10-12", lift: null }
+    ],
+    friday: [
+        { name: "Incline DB Press", sets: "2x6-8 (last set to failure)", lift: null },
+        { name: "Paused Flat Bench Press", sets: "1 top single @ 85%, then 2x5-7 @ 75%", lift: "bench" },
+        { name: "Neutral Grip Pull-Ups", sets: "3x6-8", lift: null },
+        { name: "Chest Supported Row", sets: "2x8-10", lift: null },
+        { name: "Lateral Raises", sets: "2x10-12", lift: null },
+        { name: "Overhead Triceps Extensions", sets: "2x8-10", lift: null },
+        { name: "Preacher or Incline DB Curls", sets: "2x8-10", lift: null }
+    ],
+    saturday: [
+        { name: "Deadlift", sets: "1 top single @ 85-90%, then 2-3x5 @ 75-80%", lift: "deadlift" },
+        { name: "Hack Squat or Safety Bar Squat", sets: "3x6-8", lift: null },
+        { name: "Back Extensions/Good Mornings", sets: "3x8-10", lift: null },
+        { name: "Standing Calf Raises", sets: "3x10-12", lift: null },
+        { name: "Lying Leg Curl", sets: "2x8-10", lift: null }
+    ],
+};
+
+// Place these functions inside your WorkoutTracker component
+const resetWeekPlan = async () => {
+    setWeekSplit(null);
+    setShowEditModal(false);
+    if (user) {
+        const db = getFirestore();
+        const ref = doc(db, "users", user.uid);
+        await updateDoc(ref, { weekSplit: null });
+    }
+};
+
+const restoreDefaultSplit = async () => {
+    setSplit(defaultSplit);
+    if (user) {
+        const db = getFirestore();
+        const ref = doc(db, "users", user.uid);
+        await updateDoc(ref, { customSplit: defaultSplit });
+    }
+};
+
+// Place this button group in your return statement where the weekly split is rendered (next to the Reset week button)
+<div className="flex flex-row gap-2 ml-4">
+    <button
+        onClick={resetWeekPlan}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Reset to Default"
+    >Reset week</button>
+    <button
+        onClick={restoreDefaultSplit}
+        className="text-xs border px-2 py-1 rounded bg-gray-800/40 text-gray-200 hover:bg-red-900/80"
+        title="Restore original split"
+    >Restore original split</button>
+</div>
+
+// Example placement in your Weekly Split block:
+/*
+<h2 className="text-lg font-semibold mb-4 flex items-center text-white">
+    <span className="mr-2">📅</span>
+    Weekly Split
+    <div className="flex flex-row gap-2 ml-4">
+        <button ...>Reset week</button>
+        <button ...>Restore original split</button>
+    </div>
+</h2>
+*/
     };
 
     React.useEffect(() => {
