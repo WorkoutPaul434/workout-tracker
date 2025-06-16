@@ -375,7 +375,7 @@ function WorkoutTracker() {
         ],
     };
     const [split, setSplit] = useCloudState(user, 'customSplit', defaultSplit);
-    const [weekSplit, setWeekSplit] = useCloudState(user, 'weekSplit', null);
+    const [weekSplit, setWeekSplit] = React.useState(null);
 
     const [setInputs, setSetInputs] = React.useState({});
     const [editMode, setEditMode] = React.useState(false);
@@ -439,18 +439,7 @@ function WorkoutTracker() {
         }
         return parseSetsWithWeights(sets, exercise.lift, oneRepMaxes);
     };
-    // Add these near the top of your component:
-const [useProgression, setUseProgression] = React.useState(false);
-const [progressionWeek, setProgressionWeek] = React.useState(1);
 
-const progressionPlan = [
-  { week: 1, topSingle: 85, backoff: 75, note: "Solid baseline" },
-  { week: 2, topSingle: 87, backoff: 77, note: "Slightly increase accessory effort" },
-  { week: 3, topSingle: 89, backoff: 80, note: "Taper a couple sets to manage fatigue" },
-  { week: 4, topSingle: 91, backoff: 82.5, note: "Push hard, then transition or deload" },
-];
-
-const progressionData = progressionPlan.find(w => w.week === progressionWeek);
     const handleEditClick = (day) => {
         setEditDay(day);
         setEditMode(true);
@@ -667,15 +656,13 @@ const progressionData = progressionPlan.find(w => w.week === progressionWeek);
                                         >
                                             <div className="font-medium text-sm mb-1">{day.slice(0, 3)}</div>
                                             <div className="text-xs">
-    {isRest ? (
-        <span>😴 Rest</span>
-    ) : (
-        <div>
-            <div className="text-lg mb-1">{emojiMap[dayKey]}</div>
-            <div>{(dayTitles[dayKey] || "").split(' ')[0]}</div>
-        </div>
-    )}
-</div>
+                                                {isRest ? '😴 Rest' : (
+                                                    <div>
+                                                        <div className="text-lg mb-1">{emojiMap[dayKey]}</div>
+                                                        <div>{(dayTitles[dayKey] || "").split(' ')[0]}</div>
+                                                    </div>
+                                                )}
+                                            </div>
                                             {!isRest && <span
                                                 className="absolute top-1 right-2 pencil-btn"
                                                 title="Edit Day"
@@ -686,81 +673,47 @@ const progressionData = progressionPlan.find(w => w.week === progressionWeek);
                                     );
                                 })}
                             </div>
-                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
-  <h3 className="text-lg font-semibold text-white flex items-center">
-    <span className="mr-2">🎯</span>
-    Training Mode
-  </h3>
-  <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-    {/* Peaking Block */}
-    <label className="flex items-center">
-      <input
-        type="checkbox"
-        checked={isPeaking}
-        onChange={(e) => setIsPeaking(e.target.checked)}
-        className="w-5 h-5 rounded border-gray-600 text-red-600 focus:ring-red-500 bg-gray-800"
-      />
-      <span className="ml-2 text-sm font-medium text-white">Peaking Block</span>
-    </label>
-    {isPeaking && (
-      <select
-        value={peakingWeek}
-        onChange={(e) => setPeakingWeek(parseInt(e.target.value))}
-        className="border border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-800 text-white focus:ring-2 focus:ring-red-500 ml-2"
-      >
-        <option value={1}>Week 1 - Heavy Practice</option>
-        <option value={2}>Week 2 - Volume Drop</option>
-        <option value={3}>Week 3 - Max Week</option>
-      </select>
-    )}
-
-    {/* Progression Plan */}
-    <label className="flex items-center ml-4">
-      <input
-        type="checkbox"
-        checked={useProgression}
-        onChange={(e) => setUseProgression(e.target.checked)}
-        className="w-5 h-5 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-800"
-      />
-      <span className="ml-2 text-sm font-medium text-white">Progression Plan</span>
-    </label>
-    {useProgression && (
-      <select
-        value={progressionWeek}
-        onChange={(e) => setProgressionWeek(parseInt(e.target.value))}
-        className="border border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-800 text-white focus:ring-2 focus:ring-blue-500 ml-2"
-      >
-        <option value={1}>Week 1</option>
-        <option value={2}>Week 2</option>
-        <option value={3}>Week 3</option>
-        <option value={4}>Week 4</option>
-      </select>
-    )}
-  </div>
-</div>
-
-{/* Peaking Block info */}
-{isPeaking && (
-  <div className="bg-red-900/50 border border-red-700/50 rounded-xl p-4">
-    <p className="text-sm text-red-100">
-      {peakingWeek === 1 && "🔥 Heavy Practice: Top single @ 88-90%, reduce volume slightly"}
-      {peakingWeek === 2 && "⚡ Volume Drop: Top single @ 92-94%, skip some accessory sets"}
-      {peakingWeek === 3 && "🏆 Max Week: Light technique work Mon-Wed, test 1RM Fri/Sat"}
-    </p>
-  </div>
-)}
-
-{/* Progression Plan info */}
-{useProgression && progressionData && (
-  <div className="bg-blue-900/50 border border-blue-700/50 rounded-xl p-4 mt-2">
-    <p className="text-sm text-blue-100">
-      <strong>Top Single:</strong> {progressionData.topSingle}%<br />
-      <strong>Backoff:</strong> {progressionData.backoff}%<br />
-      <em>{progressionData.note}</em>
-    </p>
-  </div>
-)}
-                                     
+                        </div>
+                        {/* Peaking Block Toggle */}
+                        <div className="glass-effect rounded-2xl p-2 md:p-6 card-hover">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 space-y-3 sm:space-y-0">
+                                <h3 className="text-lg font-semibold text-white flex items-center">
+                                    <span className="mr-2">🎯</span>
+                                    Training Mode
+                                </h3>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={isPeaking}
+                                            onChange={(e) => setIsPeaking(e.target.checked)}
+                                            className="w-5 h-5 rounded border-gray-600 text-red-600 focus:ring-red-500 bg-gray-800"
+                                        />
+                                        <span className="ml-2 text-sm font-medium text-white">Peaking Block</span>
+                                    </label>
+                                    {isPeaking && (
+                                        <select
+                                            value={peakingWeek}
+                                            onChange={(e) => setPeakingWeek(parseInt(e.target.value))}
+                                            className="border border-gray-600 rounded-xl px-3 py-2 text-sm bg-gray-800 text-white focus:ring-2 focus:ring-red-500"
+                                        >
+                                            <option value={1}>Week 1 - Heavy Practice</option>
+                                            <option value={2}>Week 2 - Volume Drop</option>
+                                            <option value={3}>Week 3 - Max Week</option>
+                                        </select>
+                                    )}
+                                </div>
+                            </div>
+                            {isPeaking && (
+                                <div className="bg-red-900/50 border border-red-700/50 rounded-xl p-4">
+                                    <p className="text-sm text-red-100">
+                                        {peakingWeek === 1 && "🔥 Heavy Practice: Top single @ 88-90%, reduce volume slightly"}
+                                        {peakingWeek === 2 && "⚡ Volume Drop: Top single @ 92-94%, skip some accessory sets"}
+                                        {peakingWeek === 3 && "🏆 Max Week: Light technique work Mon-Wed, test 1RM Fri/Sat"}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         {/* Current Workout */}
                         {selectedDay && !isRestDay(selectedDay) && (
                             <div className="glass-effect rounded-2xl p-2 md:p-6 card-hover relative">
